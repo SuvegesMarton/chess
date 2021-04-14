@@ -5,73 +5,64 @@ from random import randint, choice
 #F0D9B5; - 240, 217, 181
 #946f51; - 148, 111, 81
 
+def setup_board():
+    #lower case means black pieces, upper case means white pieces
+    pawns = ['p' for _ in range(8)]
+    pieces = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
+    empty = ['' for _ in range(8)]
+    if BOARD_FLIPPED == False:
+        board = [pieces, pawns]
+        board += [['' for _ in range(8)] for _ in range(4)]
+        board.append(uppercase_maker_for_setup(pawns))
+        board.append(uppercase_maker_for_setup(pieces))
+        return board
+    if BOARD_FLIPPED == True:
+        pieces.reverse()
+        board = [uppercase_maker_for_setup(pieces), uppercase_maker_for_setup(pawns)]
+        board += [['' for _ in range(8)] for _ in range(4)]
+        board.append(pawns)
+        board.append(pieces)
+        return board
 
+    return board_state
 
-knight_directions = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
-bishop_directions = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-rook_directions = [[0, 1], [0, -1], [-1, 0], [1, 0]]
-#  'colour + _ + piece name + L + start line'
-white_pieces = ['white_pawnLA', 'white_pawnLB', 'white_pawnLC', 'white_pawnLD', 'white_pawnLE', 'white_pawnLF', 'white_pawnLG', 'white_pawnLH',
-                'white_rookLA', 'white_knightLB', 'white_bishopLC', 'white_queen', 'white_king', 'white_bishopLF', 'white_knightLG', 'white_rookLH',]
-white_alive = [1] * 16
+def uppercase_maker_for_setup(lowercase_list):
+    uppercase_list = []
+    for i in lowercase_list:
+        uppercase_list.append(i.upper())
+    return uppercase_list
 
-black_pieces = ['black_rookLA', 'black_knightLB', 'black_bishopLC', 'black_queen', 'black_king', 'black_bishopLF', 'black_knightLG', 'black_rookLH',
-                'black_pawnLA', 'black_pawnLB', 'black_pawnLC', 'black_pawnLD', 'black_pawnLE', 'black_pawnLF', 'black_pawnLG', 'black_pawnLH']
-black_alive = [1] * 16
-
-board_state = []
-board_state += ([black_pieces[:8]])
-board_state += ([black_pieces[8:]])
-board_state += (['empty'] * 8,['empty'] * 8,['empty'] * 8,['empty'] * 8)
-board_state += ([white_pieces[:8]])
-board_state += ([white_pieces[8:]])
-
-previous_move = None
-white_rooks_moved = False
-black_rooks_moved = False
-
-with_gui = True
-if with_gui:
-    square_size = 100
-    pygame.init()
-    gameDisplay = pygame.display.set_mode((square_size*8, square_size*8))
-    pygame.display.set_caption('Chess')
-    clock = pygame.time.Clock()
-
-
-def get_move_from_gui(color, board_state):
-    legals = legal_moves(color, board_state)
+def get_move_from_gui(color, board_state, additional_board_info):
+    legals = legal_moves(color, board_state, additional_board_info)
     move_half_done = False
     first_half = 0
     while True:
-        ev = pygame.event.get()
-        for event in ev:
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
-                line, file = pos[1] // square_size, pos[0] // square_size
+                line, file = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
                 clicked_square = board_state[line][file]
                 if move_half_done == True:
                     assembled_move = first_half + num_adress_to_letter((line, file))
                     if assembled_move in legals:
                         return assembled_move
-                    elif 'white' in clicked_square:
+                    elif (color == 'white' and clicked_square.isupper()) or (color == 'black' and clicked_square.islower()):
                         first_half = num_adress_to_letter((line, file))
-                        display_with_gui(board_state, selected_piece=clicked_square, legal_moves=legals)
+                        display_with_gui(board_state, selected_piece_position=[line, file], legal_moves=legals)
                     else:
                         move_half_done = False
 
-                elif 'white' in clicked_square:
+                elif (color == 'white' and clicked_square.isupper()) or (color == 'black' and clicked_square.islower()):
                     first_half = num_adress_to_letter((line, file))
                     move_half_done = True
-                    display_with_gui(board_state, selected_piece=clicked_square, legal_moves=legals)
+                    display_with_gui(board_state, selected_piece_position=[line, file], legal_moves=legals)
 
-
-def create_square_animation_map(moving_piece, board_state, legal_moves):
+def create_square_animation_map(square_num, board_state, legal_moves):
     #0 nothing
     #1 corners
     #2 green circle
     #3 check
-    square_num = find_square_by_piece(moving_piece, board_state)
     square_letter = num_adress_to_letter(square_num)
     moves_to_animate = []
     for move in legal_moves:
@@ -81,7 +72,7 @@ def create_square_animation_map(moving_piece, board_state, legal_moves):
     map = [[0 for i in range(8)] for i in range(8)]
 
     for i in moves_to_animate:
-        if find_square_by_letter_adress(i[2:], board_state) != 'empty':
+        if find_square_by_letter_adress(i[2:], board_state) != '':
             num_adress = letter_adress_to_num(i[2:])
             map[num_adress[0]][num_adress[1]] = 1
         else:
@@ -98,7 +89,6 @@ def apply_animation(img, animation_code):
         squares_filter = cv2.imread('GUI/corners.png')
         for i in range(len(squares_filter)):
             for j in range(len(squares_filter[i])):
-                print(np.array_equal(squares_filter[i][j], white))
                 if not np.array_equal(squares_filter[i][j], white):
                     img[i][j] = squares_filter[i][j]
         return img
@@ -115,7 +105,7 @@ def apply_animation(img, animation_code):
 def load_img(img_name):
     location = 'GUI/' + img_name + '.png'
     img = pygame.image.load(location)
-    img = pygame.transform.scale(img, (square_size, square_size))
+    img = pygame.transform.scale(img, (SQUARE_SIZE, SQUARE_SIZE))
     return img
 
 def create_img(img_name):
@@ -163,32 +153,24 @@ def get_image(img_name):
     try:
         img = load_img(img_name)
     except:
+        print(img_name)
         create_img(img_name)
         img = load_img(img_name)
     return img
 
 def img_format_name_from_square(square):
-    if 'white' in square:
-        c = '1'
-    elif 'black' in square:
-        c = '0'
+    if square.isupper():
+        piece_color = '1'
+    elif square.islower():
+        piece_color = '0'
     else:
-        c = 'e'
-    if 'pawn' in square:
-        p = 'p'
-    elif 'rook' in square:
-        p = 'r'
-    elif 'knight' in square:
-        p = 'n'
-    elif 'bishop' in square:
-        p = 'b'
-    elif 'queen' in square:
-        p = 'q'
-    elif 'king' in square:
-        p = 'k'
+        piece_color = 'e'
+    square.islower()
+    if square != '':
+        piece_name = square.lower()
     else:
-        p = 'e'
-    return c + p
+        piece_name = 'e'
+    return piece_color + piece_name
 
 def display_board(board):
     for row in board:
@@ -196,11 +178,11 @@ def display_board(board):
             print(square + ', ', end='')
         print('')
 
-def display_with_gui(board, selected_piece=None, legal_moves=None):
+def display_with_gui(board, selected_piece_position=None, legal_moves=None):
     y = 0
     start_color = 1   #even = dark, odd = light
-    if selected_piece != None:
-        square_animation_map = create_square_animation_map(selected_piece, board, legal_moves)
+    if selected_piece_position != None:
+        square_animation_map = create_square_animation_map(selected_piece_position, board, legal_moves)
     else:
         square_animation_map = [[0 for i in range(8)] for i in range(8)]
     for i, row in enumerate(board):
@@ -210,10 +192,10 @@ def display_with_gui(board, selected_piece=None, legal_moves=None):
             img_name = img_format_name_from_square(square) + str(square_color%2) + str(square_animation_map[i][j])
             img = get_image(img_name)
             gameDisplay.blit(img, (x, y))
-            x += square_size
+            x += SQUARE_SIZE
             square_color += 1
         start_color += 1
-        y += square_size
+        y += SQUARE_SIZE
     pygame.display.update()
 
 def num_adress_to_letter( adress):
@@ -230,11 +212,8 @@ def letter_adress_to_num( adress):
     return row, column
 
 def find_square_by_letter_adress(adress, board_state):
-    letter = adress[0].lower()
-    num = 8 - int(adress[1])
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    letter_num = letters.index(letter)
-    return board_state[num][letter_num]
+    row, column = letter_adress_to_num(adress)
+    return board_state[row][column]
 
 def find_square_by_piece(piece, board_state):
     for i, row in enumerate(board_state):
@@ -245,91 +224,117 @@ def find_square_by_piece(piece, board_state):
 def find_square_by_number_adress(adressY, adressX, board_state):
     return board_state[adressY][adressX]
 
-def legal_moves_all_direction_pieces(directions, range, piece, board_state):
-    if 'white' in piece:
-        moving_color = 'white'
-        other = 'black'
-    else:
-        moving_color = 'black'
-        other = 'white'
+def legal_moves_all_direction_pieces(directions, range, position, board_state):
     legals = []
-    piece_position = find_square_by_piece(piece, board_state)
+    piece = find_square_by_number_adress(position[0], position[1], board_state)
     for direction in directions:
         range_counter = 0
-        position = piece_position
+        new_position = position
         while range_counter < range:
             range_counter += 1
-            new_position = [position[0] + direction[0], position[1] + direction[1]]
+            new_position = [new_position[0] + direction[0], new_position[1] + direction[1]]
             if 0 > new_position[0] or new_position[0] > 7 or 0 > new_position[1] or new_position[1] > 7:
                 break
             square = find_square_by_number_adress(new_position[0], new_position[1], board_state)
-            if square == 'empty':
-                legals.append(num_adress_to_letter(piece_position) + num_adress_to_letter(new_position))
-                position = new_position
-            elif other in square:
-                legals.append(num_adress_to_letter(piece_position) + num_adress_to_letter(new_position))
+            if square == '':
+                legals.append(num_adress_to_letter(position) + num_adress_to_letter(new_position))
+            elif square.isupper() != piece.isupper():
+                legals.append(num_adress_to_letter(position) + num_adress_to_letter(new_position))
                 break
-            elif moving_color in square:
+            elif square.isupper() == piece.isupper():
                 break
     return legals
+
+def legal_moves_pawn(position, board_state):
+    legals = []
+    pawn = board_state[position[0]][position[1]]
+    if (BOARD_FLIPPED == False and pawn.islower()) or (BOARD_FLIPPED == True and pawn.isupper()):
+        forward_direction = [1, 0]
+        capture_directions = [[1, 1], [1, -1]]
+    else:
+        forward_direction = [-1, 0]
+        capture_directions = [[-1, 1], [-1, -1]]
+
+    #moving forward
+    forward_square_position = [position[0] + forward_direction[0], position[1] + forward_direction[1]]
+    can_move_forward = False
+    if 0 <= forward_square_position[0] < 8 and 0 <= forward_square_position[1] < 8 and board_state[forward_square_position[0]][forward_square_position[1]] == '':
+        move = num_adress_to_letter(position) + num_adress_to_letter(forward_square_position)
+        legals.append(move)
+        can_move_forward = True
+    #capturing
+    for dir in capture_directions:
+        capture_square_position = [position[0] + dir[0], position[1] + dir[1]]
+        if 0 <= capture_square_position[0] < 8 and 0 <= capture_square_position[1] < 8 and board_state[capture_square_position[0]][capture_square_position[1]] != '' and board_state[capture_square_position[0]][capture_square_position[1]].isupper() != pawn.isupper():
+            move = num_adress_to_letter(position) + num_adress_to_letter(capture_square_position)
+            legals.append(move)
+    #double move
+    if can_move_forward:
+        double_forward_square_position = [forward_square_position[0] + forward_direction[0], forward_square_position[1] + forward_direction[1]]
+        if 0 <= double_forward_square_position[0] < 8 and 0 <= double_forward_square_position[1] < 8 and board_state[double_forward_square_position[0]][double_forward_square_position[1]] == '':
+            if position[0] == 6 and ((pawn.isupper() and not BOARD_FLIPPED) or (pawn.islower() and BOARD_FLIPPED)) or position[0] == 1 and ((pawn.islower() and not BOARD_FLIPPED) or (pawn.isupper() and BOARD_FLIPPED)):
+                move = num_adress_to_letter(position) + num_adress_to_letter(double_forward_square_position)
+                legals.append(move)
+    #en passant
+    #promotion
+    return legals
+
+def en_passant(position, board_state, previous_move):
+    if previous_move == None:
+        return []
+    if find_square_by_letter_adress(previous_move[2:], board_state) in ['p', 'P']:
+        print('previous move was made by a pawn')
+    return []
 
 def execute_move(move, board_state):
     from_square = letter_adress_to_num(move[:2])
     to = letter_adress_to_num(move[2:])
     moving_piece = board_state[from_square[0]][from_square[1]]
-    board_state[from_square[0]][from_square[1]] = 'empty'
+    board_state[from_square[0]][from_square[1]] = ''
     #captured = board_state[to[0]][to[1]]
     board_state[to[0]][to[1]] = moving_piece
+    #promotion
+    if moving_piece in ['p', 'P'] and (to[0] == 0 or to[0] == 7):
+        pawn_is_upper = moving_piece.isupper()
+        print(pawn_is_upper)
+        while True:
+            replacing_piece = 'q'#input('Promote the pawn to: ')
+            if replacing_piece in ['r', 'n', 'b', 'q']:
+                if pawn_is_upper:
+                    replacing_piece = replacing_piece.upper()
+                board_state[to[0]][to[1]] = replacing_piece
+                break
+            else:
+                print('invalid piece code, try again!')
+
     return board_state
 
-def legal_moves(color, board_state, check_matters=True):
-    moving_pieces = []
-    if color == 'white':
-        moving_pieces = white_pieces
-    if color == 'black':
-        moving_pieces = black_pieces
+def legal_moves(color, board_state, additional_board_info, check_matters=True):
     legal = []
     #find moves
-    for piece in moving_pieces:
-        position = find_square_by_piece(piece, board_state)
-        if position == None:
-            continue
-        if 'pawn' in piece:
-            #double move from starting position
-            if color == 'black' and position[0] == 1 and find_square_by_number_adress(3, position[1], board_state) == 'empty':
-                legal.append(num_adress_to_letter(position) + num_adress_to_letter([3, position[1]]))
-            if color == 'white' and position[0] == 6 and find_square_by_number_adress(4, position[1], board_state) == 'empty':
-                legal.append(num_adress_to_letter(position) + num_adress_to_letter([4, position[1]]))
-            #forward move
-            if color == 'black' and find_square_by_number_adress(position[0] + 1, position[1], board_state) == 'empty':
-                legal.append(num_adress_to_letter(position) + num_adress_to_letter([position[0] + 1, position[1]]))
-            if color == 'white' and find_square_by_number_adress(position[0] - 1, position[1], board_state) == 'empty':
-                legal.append(num_adress_to_letter(position) + num_adress_to_letter([position[0] - 1, position[1]]))
-            #capture
-            if 0 <= position[1] - 1 <= 7:
-                if color == 'black' and 'white' in find_square_by_number_adress(position[0] + 1, position[1] - 1, board_state):
-                    legal.append(num_adress_to_letter(position) + num_adress_to_letter([position[0] + 1, position[1] - 1]))
-            if 0 <= position[1] + 1 <= 7:
-                if color == 'black' and 'white' in find_square_by_number_adress(position[0] + 1, position[1] + 1, board_state):
-                    legal.append(num_adress_to_letter(position) + num_adress_to_letter([position[0] + 1, position[1] + 1]))
-            if 0 <= position[1] - 1 <= 7:
-                if color == 'white' and 'black' in find_square_by_number_adress(position[0] - 1, position[1] - 1, board_state):
-                    legal.append(num_adress_to_letter(position) + num_adress_to_letter([position[0] - 1, position[1] - 1]))
-            if 0 <= position[1] + 1 <= 7:
-                if color == 'white' and 'black' in find_square_by_number_adress(position[0] - 1, position[1] + 1, board_state):
-                    legal.append(num_adress_to_letter(position) + num_adress_to_letter([position[0] - 1, position[1] + 1]))
-            #en passant
-        if 'knight' in piece:
-            legal += legal_moves_all_direction_pieces(knight_directions, 1, piece, board_state)
-        if 'bishop' in piece:
-            legal += legal_moves_all_direction_pieces(bishop_directions, 8, piece, board_state)
-        if 'rook' in piece:
-            legal += legal_moves_all_direction_pieces(rook_directions, 8, piece, board_state)
-        if 'queen' in piece:
-            legal += legal_moves_all_direction_pieces(rook_directions + bishop_directions, 8, piece, board_state)
-        if 'king' in piece:
-            legal += legal_moves_all_direction_pieces(rook_directions + bishop_directions, 1, piece, board_state)
+    for row in range(len(board_state)):
+        for column in range(len(board_state[row])):
+            square = board_state[row][column]
+            if square == '':#if square is empty
+                continue
+            elif square.isupper() and color == 'white' or square.islower() and color == 'black':#if the piece on the square belongs to the player who will make the move
+                square = square.lower()
+                position = [row, column]
+                if square == 'p':
+                    legal += legal_moves_pawn(position, board_state)
+                    legal += en_passant(position, board_state, additional_board_info['previous_move'])
+                if square == 'n':
+                    legal += legal_moves_all_direction_pieces(KNIGHT_DIRECTIONS, 1, position, board_state)
+                if square == 'b':
+                    legal += legal_moves_all_direction_pieces(BISHOP_DIRECTIONS, 8, position, board_state)
+                if square == 'r':
+                    legal += legal_moves_all_direction_pieces(ROOK_DIRECTIONS, 8, position, board_state)
+                if square == 'q':
+                    legal += legal_moves_all_direction_pieces(ROOK_DIRECTIONS + BISHOP_DIRECTIONS, 8, position, board_state)
+                if square == 'k':
+                    legal += legal_moves_all_direction_pieces(ROOK_DIRECTIONS + BISHOP_DIRECTIONS, 1, position, board_state)
     #delete illegal moves
+    print(legal)
     return legal
 
 def is_check(attacker, board_state):
@@ -338,7 +343,7 @@ def is_check(attacker, board_state):
         king = 'black_king'
     if attacker == 'black':
         king = 'white_king'
-    attackers_legal_moves = legal_moves(attacker, board_state, check_matters=False)
+    attackers_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_matters=False)
     king_position = find_square_by_piece(king, board_state)
     king_position_letter = num_adress_to_letter(king_position)
     for move in attackers_legal_moves:
@@ -346,18 +351,53 @@ def is_check(attacker, board_state):
             return True
     return False
 
-def play_vs_ai(board_state):
+def play_vs_ai(board_state, additional_board_info):
     display_with_gui(board_state)
 
 
     while True:
-        m = get_move_from_gui('white', board_state)
+        if BOARD_FLIPPED:
+            w_l = legal_moves('white', board_state, additional_board_info)
+            m = choice(w_l)
+        else:
+            m = get_move_from_gui('white', board_state, additional_board_info)
         board_state = execute_move(m, board_state)
+        additional_board_info['previous_move'] = m
+        previous_move = m
         display_with_gui(board_state)
-        b_l = legal_moves('black', board_state)
-        m = choice(b_l)
-        clock.tick(0.5)
+        if BOARD_FLIPPED:
+            m = get_move_from_gui('black', board_state, additional_board_info)
+        else:
+            b_l = legal_moves('black', board_state, additional_board_info)
+            m = choice(b_l)
         board_state = execute_move(m, board_state)
+        additional_board_info['previous_move'] = m
+        previous_move = m
         display_with_gui(board_state)
+        
+        
+BOARD_FLIPPED = True
 
-play_vs_ai(board_state)
+KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
+BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
+#  'colour + _ + piece name + L + start line'
+
+board_state = setup_board()
+additional_board_info = {
+                         'previous_move': None,
+                         'black_rooks_moved': [False, False],
+                         'black_king_moved': False,
+                         'white_rooks_moved': False,
+                         'white_king_moved': False,
+                         }
+
+WITH_GUI = True
+if WITH_GUI:
+    SQUARE_SIZE = 100
+    pygame.init()
+    gameDisplay = pygame.display.set_mode((SQUARE_SIZE*8, SQUARE_SIZE*8))
+    pygame.display.set_caption('Chess')
+    clock = pygame.time.Clock()
+
+play_vs_ai(board_state, additional_board_info)
