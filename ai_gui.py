@@ -245,7 +245,7 @@ def legal_moves_all_direction_pieces(directions, range, position, board_state):
                 break
     return legals
 
-def legal_moves_pawn(position, board_state):
+def legal_moves_pawn(position, board_state, previous_move):
     legals = []
     pawn = board_state[position[0]][position[1]]
     if (BOARD_FLIPPED == False and pawn.islower()) or (BOARD_FLIPPED == True and pawn.isupper()):
@@ -276,15 +276,16 @@ def legal_moves_pawn(position, board_state):
                 move = num_adress_to_letter(position) + num_adress_to_letter(double_forward_square_position)
                 legals.append(move)
     #en passant
-    #promotion
-    return legals
-
-def en_passant(position, board_state, previous_move):
     if previous_move == None:
-        return []
-    if find_square_by_letter_adress(previous_move[2:], board_state) in ['p', 'P']:
-        print('previous move was made by a pawn')
-    return []
+        pass
+    elif find_square_by_letter_adress(previous_move[2:], board_state) in ['p', 'P']:#pawn moved
+        if abs(int(previous_move[1]) - int(previous_move[3])) == 2:#two squares forward
+            pawn_position = letter_adress_to_num(previous_move[2:])
+            if pawn_position[0] == position[0] and abs(int(pawn_position[1]) - int(position[1])) == 1:#next to each other
+                take_position = previous_move[0] + str(int((int(previous_move[1]) + int(previous_move[3])) / 2))
+                move = num_adress_to_letter(position) + take_position
+                legals.append(move)
+    return legals
 
 def execute_move(move, board_state):
     from_square = letter_adress_to_num(move[:2])
@@ -321,8 +322,7 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True):
                 square = square.lower()
                 position = [row, column]
                 if square == 'p':
-                    legal += legal_moves_pawn(position, board_state)
-                    legal += en_passant(position, board_state, additional_board_info['previous_move'])
+                    legal += legal_moves_pawn(position, board_state, additional_board_info['previous_move'])
                 if square == 'n':
                     legal += legal_moves_all_direction_pieces(KNIGHT_DIRECTIONS, 1, position, board_state)
                 if square == 'b':
@@ -363,7 +363,6 @@ def play_vs_ai(board_state, additional_board_info):
             m = get_move_from_gui('white', board_state, additional_board_info)
         board_state = execute_move(m, board_state)
         additional_board_info['previous_move'] = m
-        previous_move = m
         display_with_gui(board_state)
         if BOARD_FLIPPED:
             m = get_move_from_gui('black', board_state, additional_board_info)
@@ -372,11 +371,21 @@ def play_vs_ai(board_state, additional_board_info):
             m = choice(b_l)
         board_state = execute_move(m, board_state)
         additional_board_info['previous_move'] = m
-        previous_move = m
+        display_with_gui(board_state)
+
+def pvp(board_state, additional_board_info):
+    display_with_gui(board_state)
+    while True:
+        m = get_move_from_gui('white', board_state, additional_board_info)
+        board_state = execute_move(m, board_state)
+        additional_board_info['previous_move'] = m
+        display_with_gui(board_state)
+        m = get_move_from_gui('black', board_state, additional_board_info)
+        board_state = execute_move(m, board_state)
+        additional_board_info['previous_move'] = m
         display_with_gui(board_state)
         
-        
-BOARD_FLIPPED = True
+BOARD_FLIPPED = False
 
 KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
 BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
@@ -400,4 +409,5 @@ if WITH_GUI:
     pygame.display.set_caption('Chess')
     clock = pygame.time.Clock()
 
-play_vs_ai(board_state, additional_board_info)
+#play_vs_ai(board_state, additional_board_info)
+pvp(board_state, additional_board_info)
