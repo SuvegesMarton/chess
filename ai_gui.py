@@ -5,11 +5,16 @@ from random import randint, choice
 #F0D9B5; - 240, 217, 181
 #946f51; - 148, 111, 81
 
+def copy_2d_list(list_to_copy):
+    new_list = []
+    for i in list_to_copy:
+        new_list.append(i.copy())
+    return new_list
+
 def setup_board():
     #lower case means black pieces, upper case means white pieces
     pawns = ['p' for _ in range(8)]
     pieces = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
-    empty = ['' for _ in range(8)]
     if BOARD_FLIPPED == False:
         board = [pieces, pawns]
         board += [['' for _ in range(8)] for _ in range(4)]
@@ -24,8 +29,6 @@ def setup_board():
         board.append(pieces)
         return board
 
-    return board_state
-
 def uppercase_maker_for_setup(lowercase_list):
     uppercase_list = []
     for i in lowercase_list:
@@ -33,7 +36,9 @@ def uppercase_maker_for_setup(lowercase_list):
     return uppercase_list
 
 def get_move_from_gui(color, board_state, additional_board_info):
+    #print('before', board_state)
     legals = legal_moves(color, board_state, additional_board_info)
+    #print('after', board_state)
     move_half_done = False
     first_half = 0
     while True:
@@ -287,6 +292,9 @@ def legal_moves_pawn(position, board_state, previous_move):
                 legals.append(move)
     return legals
 
+def castling(board_state, side_to_move, additional_board_info):
+    pass
+
 def execute_move(move, board_state):
     from_square = letter_adress_to_num(move[:2])
     to = letter_adress_to_num(move[2:])
@@ -297,7 +305,6 @@ def execute_move(move, board_state):
     #promotion
     if moving_piece in ['p', 'P'] and (to[0] == 0 or to[0] == 7):
         pawn_is_upper = moving_piece.isupper()
-        print(pawn_is_upper)
         while True:
             replacing_piece = 'q'#input('Promote the pawn to: ')
             if replacing_piece in ['r', 'n', 'b', 'q']:
@@ -310,7 +317,7 @@ def execute_move(move, board_state):
 
     return board_state
 
-def legal_moves(color, board_state, additional_board_info, check_matters=True):
+def legal_moves(color, board_state, additional_board_info, check_matters=True, check_castling=True):
     legal = []
     #find moves
     for row in range(len(board_state)):
@@ -333,28 +340,48 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True):
                     legal += legal_moves_all_direction_pieces(ROOK_DIRECTIONS + BISHOP_DIRECTIONS, 8, position, board_state)
                 if square == 'k':
                     legal += legal_moves_all_direction_pieces(ROOK_DIRECTIONS + BISHOP_DIRECTIONS, 1, position, board_state)
-    #delete illegal moves
-    print(legal)
+                    if check_castling:
+                        pass
+    #delete moves when the king is in check
+    if check_matters:
+        no_check_moves = []
+        for move in legal:
+            board_after_move = execute_move(move, copy_2d_list(board_state))
+            attacker = ''
+            if color == 'white':
+                attacker = 'black'
+            if color == 'black':
+                attacker = 'white'
+            if not is_check(attacker, board_after_move, additional_board_info):
+                no_check_moves.append(move)
+        legal = no_check_moves
     return legal
 
-def is_check(attacker, board_state):
-    king = ''
-    if attacker == 'white':
-        king = 'black_king'
-    if attacker == 'black':
-        king = 'white_king'
-    attackers_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_matters=False)
-    king_position = find_square_by_piece(king, board_state)
+def is_check(attacker, board_state, additional_board_info):
+    king_position = [0, 0]
+    for row in range(len(board_state)):
+        for square in range(len(board_state[row])):
+            if (board_state[row][square] == 'K' and attacker == 'black') or (board_state[row][square] == 'k' and attacker == 'white'):
+                king_position = [row, square]
+    attackers_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_matters=False, check_castling=False)
     king_position_letter = num_adress_to_letter(king_position)
     for move in attackers_legal_moves:
         if king_position_letter in move:   #attacker can lands on the king's square
             return True
     return False
 
-def play_vs_ai(board_state, additional_board_info):
+def play_vs_ai(board_state=None, additional_board_info=None):
+    if board_state == None:
+        board_state = setup_board()
+    if additional_board_info == None:
+        additional_board_info = {
+            'previous_move': None,
+            'black_rooks_moved': [False, False],
+            'black_king_moved': False,
+            'white_rooks_moved': False,
+            'white_king_moved': False,
+        }
     display_with_gui(board_state)
-
-
     while True:
         if BOARD_FLIPPED:
             w_l = legal_moves('white', board_state, additional_board_info)
@@ -373,16 +400,19 @@ def play_vs_ai(board_state, additional_board_info):
         additional_board_info['previous_move'] = m
         display_with_gui(board_state)
 
-def pvp(board_state, additional_board_info):
+def pvp(board_state=None, additional_board_info=None):
     display_with_gui(board_state)
     while True:
         m = get_move_from_gui('white', board_state, additional_board_info)
         board_state = execute_move(m, board_state)
         additional_board_info['previous_move'] = m
+        print(is_check('white', board_state, additional_board_info))
         display_with_gui(board_state)
         m = get_move_from_gui('black', board_state, additional_board_info)
         board_state = execute_move(m, board_state)
         additional_board_info['previous_move'] = m
+        print(is_check('black', board_state, additional_board_info))
+
         display_with_gui(board_state)
         
 BOARD_FLIPPED = False
@@ -390,16 +420,6 @@ BOARD_FLIPPED = False
 KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
 BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
 ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
-#  'colour + _ + piece name + L + start line'
-
-board_state = setup_board()
-additional_board_info = {
-                         'previous_move': None,
-                         'black_rooks_moved': [False, False],
-                         'black_king_moved': False,
-                         'white_rooks_moved': False,
-                         'white_king_moved': False,
-                         }
 
 WITH_GUI = True
 if WITH_GUI:
@@ -410,4 +430,4 @@ if WITH_GUI:
     clock = pygame.time.Clock()
 
 #play_vs_ai(board_state, additional_board_info)
-pvp(board_state, additional_board_info)
+play_vs_ai()
