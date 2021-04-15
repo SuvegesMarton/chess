@@ -301,6 +301,11 @@ def execute_move(move, board_state):
     moving_piece = board_state[from_square[0]][from_square[1]]
     board_state[from_square[0]][from_square[1]] = ''
     #captured = board_state[to[0]][to[1]]
+    # en passant
+    if moving_piece in ['p', 'P'] and move[0] != move[2] and board_state[to[0]][to[1]] == '':#if pawn, takes, empty square => en passant
+        take_square = letter_adress_to_num(str(move[2]) + str(move[1]))
+        board_state[take_square[0]][take_square[1]] = ''
+
     board_state[to[0]][to[1]] = moving_piece
     #promotion
     if moving_piece in ['p', 'P'] and (to[0] == 0 or to[0] == 7):
@@ -314,6 +319,7 @@ def execute_move(move, board_state):
                 break
             else:
                 print('invalid piece code, try again!')
+
 
     return board_state
 
@@ -401,6 +407,16 @@ def play_vs_ai(board_state=None, additional_board_info=None):
         display_with_gui(board_state)
 
 def pvp(board_state=None, additional_board_info=None):
+    if board_state == None:
+        board_state = setup_board()
+    if additional_board_info == None:
+        additional_board_info = {
+            'previous_move': None,
+            'black_rooks_moved': [False, False],
+            'black_king_moved': False,
+            'white_rooks_moved': False,
+            'white_king_moved': False,
+        }
     display_with_gui(board_state)
     while True:
         m = get_move_from_gui('white', board_state, additional_board_info)
@@ -430,4 +446,4 @@ if WITH_GUI:
     clock = pygame.time.Clock()
 
 #play_vs_ai(board_state, additional_board_info)
-play_vs_ai()
+pvp()
