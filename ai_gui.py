@@ -11,6 +11,8 @@ def copy_2d_list(list_to_copy):
         new_list.append(i.copy())
     return new_list
 
+def copy_dict(dict_to_copy):
+    pass
 def setup_board():
     #lower case means black pieces, upper case means white pieces
     pawns = ['p' for _ in range(8)]
@@ -29,6 +31,10 @@ def setup_board():
         board.append(pieces)
         return board
 
+def setup_additional_board_info():
+    #previous move, white rook a moved, white king moved, white rook h moved, black rook a moved, black king moved, black rook h moved
+    return [[None], [False, False, False], [False, False, False]]
+
 def uppercase_maker_for_setup(lowercase_list):
     uppercase_list = []
     for i in lowercase_list:
@@ -36,9 +42,7 @@ def uppercase_maker_for_setup(lowercase_list):
     return uppercase_list
 
 def get_move_from_gui(color, board_state, additional_board_info):
-    #print('before', board_state)
     legals = legal_moves(color, board_state, additional_board_info)
-    #print('after', board_state)
     move_half_done = False
     first_half = 0
     while True:
@@ -203,17 +207,29 @@ def display_with_gui(board, selected_piece_position=None, legal_moves=None):
         y += SQUARE_SIZE
     pygame.display.update()
 
-def num_adress_to_letter( adress):
+def num_adress_to_letter(adress):
     #input: 0-7
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    num = 8 - adress[0]
-    lett = letters[adress[1]]
+    if not BOARD_FLIPPED:
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        num = 8 - adress[0]
+        lett = letters[adress[1]]
+    else:
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        num = 8 - (7 - adress[0])
+        lett = letters[(7 - adress[1])]
     return str(str(lett) + str(num))
 
 def letter_adress_to_num( adress):
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    column = letters.index(adress[0])
-    row = 8 - int(adress[1])
+    if not BOARD_FLIPPED:
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        column = letters.index(adress[0])
+        row = 8 - int(adress[1])
+    else:
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        column = letters.index(adress[0])
+        row = 8 - int(adress[1])
+        column = 7 - column
+        row = 7 - row
     return row, column
 
 def find_square_by_letter_adress(adress, board_state):
@@ -295,7 +311,7 @@ def legal_moves_pawn(position, board_state, previous_move):
 def castling(board_state, side_to_move, additional_board_info):
     pass
 
-def execute_move(move, board_state):
+def execute_move(move, board_state, additional_board_info):
     from_square = letter_adress_to_num(move[:2])
     to = letter_adress_to_num(move[2:])
     moving_piece = board_state[from_square[0]][from_square[1]]
@@ -320,8 +336,8 @@ def execute_move(move, board_state):
             else:
                 print('invalid piece code, try again!')
 
-
-    return board_state
+    additional_board_info[0][0] = move
+    return board_state, additional_board_info
 
 def legal_moves(color, board_state, additional_board_info, check_matters=True, check_castling=True):
     legal = []
@@ -335,7 +351,7 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True, c
                 square = square.lower()
                 position = [row, column]
                 if square == 'p':
-                    legal += legal_moves_pawn(position, board_state, additional_board_info['previous_move'])
+                    legal += legal_moves_pawn(position, board_state, additional_board_info[0][0])
                 if square == 'n':
                     legal += legal_moves_all_direction_pieces(KNIGHT_DIRECTIONS, 1, position, board_state)
                 if square == 'b':
@@ -352,7 +368,7 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True, c
     if check_matters:
         no_check_moves = []
         for move in legal:
-            board_after_move = execute_move(move, copy_2d_list(board_state))
+            board_after_move, _ = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
             attacker = ''
             if color == 'white':
                 attacker = 'black'
@@ -380,13 +396,7 @@ def play_vs_ai(board_state=None, additional_board_info=None):
     if board_state == None:
         board_state = setup_board()
     if additional_board_info == None:
-        additional_board_info = {
-            'previous_move': None,
-            'black_rooks_moved': [False, False],
-            'black_king_moved': False,
-            'white_rooks_moved': False,
-            'white_king_moved': False,
-        }
+        additional_board_info = setup_additional_board_info()
     display_with_gui(board_state)
     while True:
         if BOARD_FLIPPED:
@@ -394,44 +404,32 @@ def play_vs_ai(board_state=None, additional_board_info=None):
             m = choice(w_l)
         else:
             m = get_move_from_gui('white', board_state, additional_board_info)
-        board_state = execute_move(m, board_state)
-        additional_board_info['previous_move'] = m
+        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
         if BOARD_FLIPPED:
             m = get_move_from_gui('black', board_state, additional_board_info)
         else:
             b_l = legal_moves('black', board_state, additional_board_info)
             m = choice(b_l)
-        board_state = execute_move(m, board_state)
-        additional_board_info['previous_move'] = m
+        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
 
 def pvp(board_state=None, additional_board_info=None):
     if board_state == None:
         board_state = setup_board()
     if additional_board_info == None:
-        additional_board_info = {
-            'previous_move': None,
-            'black_rooks_moved': [False, False],
-            'black_king_moved': False,
-            'white_rooks_moved': False,
-            'white_king_moved': False,
-        }
+        additional_board_info = setup_additional_board_info()
     display_with_gui(board_state)
     while True:
         m = get_move_from_gui('white', board_state, additional_board_info)
-        board_state = execute_move(m, board_state)
-        additional_board_info['previous_move'] = m
-        print(is_check('white', board_state, additional_board_info))
+        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
         m = get_move_from_gui('black', board_state, additional_board_info)
-        board_state = execute_move(m, board_state)
-        additional_board_info['previous_move'] = m
-        print(is_check('black', board_state, additional_board_info))
+        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
 
         display_with_gui(board_state)
         
-BOARD_FLIPPED = False
+BOARD_FLIPPED = True
 
 KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
 BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
@@ -445,5 +443,5 @@ if WITH_GUI:
     pygame.display.set_caption('Chess')
     clock = pygame.time.Clock()
 
-#play_vs_ai(board_state, additional_board_info)
+#play_vs_ai()
 pvp()
