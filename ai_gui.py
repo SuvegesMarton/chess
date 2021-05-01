@@ -510,6 +510,29 @@ def is_checkmate(attacker, board_state, additional_board_info, surely_in_check=F
             return True
     return False
 
+def static_evaluation(board_state):
+    #positive-good for white, negative-good for black
+    #material
+    piece_values = {'R': 5,
+                    'N': 3,
+                    'B': 3,
+                    'Q': 9,
+                    'P': 1,
+                    'r': -5,
+                    'n': -3,
+                    'b': -3,
+                    'q': -9,
+                    'p': -1
+                    }
+    material_sum = 0
+    for i in board_state:
+        for j in i:
+            if not j in ['', 'k', 'K']:
+
+                material_sum += piece_values[j]
+    return material_sum
+
+
 def play_vs_ai(board_state=None, additional_board_info=None):
     if board_state == None:
         board_state = setup_board()
@@ -544,10 +567,13 @@ def pvp(board_state=None, additional_board_info=None):
         display_with_gui(board_state)
 
         print('checkmate:', is_checkmate('white', board_state, additional_board_info))
+        print('static eval:', static_evaluation(board_state))
         m = get_move_from_gui('black', board_state, additional_board_info)
         board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
         print('checkmate:', is_checkmate('black', board_state, additional_board_info))
+        print('static eval:', static_evaluation(board_state))
+
         
 BOARD_FLIPPED = False
 
