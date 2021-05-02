@@ -33,8 +33,8 @@ def setup_board():
         return board
 
 def setup_additional_board_info():
-    #previous move, white rook a moved, white king moved, white rook h moved, black rook a moved, black king moved, black rook h moved
-    return [[None], [False, False, False], [False, False, False]]
+    #side to move, white can castle kingside, white can castle queenside, black can castle kingside, black can castle queenside, en passant target square
+    return ['white', True, True, True, True, None]
 
 def uppercase_maker_for_setup(lowercase_list):
     uppercase_list = []
@@ -44,7 +44,6 @@ def uppercase_maker_for_setup(lowercase_list):
 
 def get_move_from_gui(color, board_state, additional_board_info):
     legals = legal_moves(color, board_state, additional_board_info)
-    print(legals)
     move_half_done = False
     first_half = 0
     while True:
@@ -242,26 +241,31 @@ def find_square_by_piece(piece, board_state):
             return [i, row.index(piece)]
     return None
 
-def modify_additional_board_info(move, additional_board_info):
-    additional_board_info[0] = [move]
-    if not BOARD_FLIPPED:
-        piece_placement = [1, 2]
-    else:
-        piece_placement = [2, 1]
+def modify_additional_board_info(move, additional_board_info, change_side_to_move=True):
+    if additional_board_info[0] == 'white' and change_side_to_move:
+        additional_board_info[0] = 'black'
+    elif additional_board_info[0] == 'black' and change_side_to_move:
+        additional_board_info[0] = 'white'
 
     if 'a1' in move:
-        additional_board_info[piece_placement[0]][0] = True
+        additional_board_info[2] = False
     if 'e1' in move:
-        additional_board_info[piece_placement[0]][1] = True
+        additional_board_info[1] = False
+        additional_board_info[2] = False
     if 'h1' in move:
-        additional_board_info[piece_placement[0]][2] = True
+        additional_board_info[1] = False
     if 'a8' in move:
-        additional_board_info[piece_placement[1]][0] = True
+        additional_board_info[3] = False
     if 'e8' in move:
-        additional_board_info[piece_placement[1]][1] = True
+        additional_board_info[3] = False
+        additional_board_info[4] = False
     if 'h8' in move:
-        additional_board_info[piece_placement[1]][2] = True
+        additional_board_info[4] = False
 
+    return additional_board_info
+
+def modify_en_passant_target_square(new_target, additional_board_info):
+    additional_board_info[5] = new_target
     return additional_board_info
 
 def find_square_by_number_adress(adressY, adressX, board_state):
@@ -297,7 +301,7 @@ def legal_moves_all_direction_pieces(directions, range, position, board_state):
                 break
     return legals
 
-def legal_moves_pawn(position, board_state, previous_move):
+def legal_moves_pawn(position, board_state, additional_board_info):
     legals = []
     pawn = board_state[position[0]][position[1]]
     if (BOARD_FLIPPED == False and pawn.islower()) or (BOARD_FLIPPED == True and pawn.isupper()):
@@ -328,69 +332,63 @@ def legal_moves_pawn(position, board_state, previous_move):
                 move = num_adress_to_letter(position) + num_adress_to_letter(double_forward_square_position)
                 legals.append(move)
     #en passant
-    if previous_move == None:
+    en_passant_target_square = additional_board_info[5]
+    if en_passant_target_square != None:
         pass
-    elif find_square_by_letter_adress(previous_move[2:], board_state) in ['p', 'P']:#pawn moved
-        if abs(int(previous_move[1]) - int(previous_move[3])) == 2:#two squares forward
-            pawn_position = letter_adress_to_num(previous_move[2:])
-            if pawn_position[0] == position[0] and abs(int(pawn_position[1]) - int(position[1])) == 1:#next to each other
-                take_position = previous_move[0] + str(int((int(previous_move[1]) + int(previous_move[3])) / 2))
-                move = num_adress_to_letter(position) + take_position
-                legals.append(move)
     return legals
 
 def castling(board_state, side_to_move, additional_board_info):
     legal_castling_moves = []
-    line_number = 1
-    attacker = None
     if side_to_move == 'white':
-        did_pieces_moved_before = additional_board_info[1]
+        can_castle = additional_board_info[1:3]
         attacker = 'black'
-        if BOARD_FLIPPED:
-            line_number = 8
+        line_number = 1
     else:
-        did_pieces_moved_before = additional_board_info[2]
+        can_castle = additional_board_info[3:5]
         attacker = 'white'
-        if not BOARD_FLIPPED:
-            line_number = 8
-    if did_pieces_moved_before[1] == False:#king not moved yet
-        attacker_legal_moves = None
-        if did_pieces_moved_before[0] == False:#long castling
+        line_number = 8
+    print(can_castle)
+
+    attacker_legal_moves = None
+    if can_castle[1]:#long castling
+        attacker_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_castling=False, check_matters=False)
+        squares_affected_by_king = ['c' + str(line_number), 'd' + str(line_number), 'e' + str(line_number)]
+        squares_to_empty = ['b' + str(line_number), 'c' + str(line_number), 'd' + str(line_number)]
+        none_under_attack = True
+        all_empty = True
+        for square in squares_affected_by_king:
+            if is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
+                none_under_attack = False
+                break
+        for square in squares_to_empty:
+            if find_square_by_letter_adress(square, board_state) != '':
+                all_empty = False
+                break
+        if none_under_attack and all_empty:
+            legal_castling_moves.append('e' + str(line_number) + 'a' + str(line_number))
+    if can_castle[0]:#short castling
+        if attacker_legal_moves == None:
             attacker_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_castling=False, check_matters=False)
-            squares_affected_by_king = ['c' + str(line_number), 'd' + str(line_number), 'e' + str(line_number)]
-            squares_to_empty = ['b' + str(line_number), 'c' + str(line_number), 'd' + str(line_number)]
-            none_under_attack = True
-            all_empty = True
-            for square in squares_affected_by_king:
-                if is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
-                    none_under_attack = False
-                    break
-            for square in squares_to_empty:
-                if find_square_by_letter_adress(square, board_state) != '':
-                    all_empty = False
-                    break
-            if none_under_attack and all_empty:
-                legal_castling_moves.append('e' + str(line_number) + 'a' + str(line_number))
-        if did_pieces_moved_before[2] == False:#short castling
-            if attacker_legal_moves == None:
-                attacker_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_castling=False, check_matters=False)
-            squares_affected_by_king = ['e' + str(line_number), 'f' + str(line_number), 'g' + str(line_number)]
-            squares_to_empty = ['f' + str(line_number), 'g' + str(line_number)]
-            none_under_attack = True
-            all_empty = True
-            for square in squares_affected_by_king:
-                if is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
-                    none_under_attack = False
-                    break
-            for square in squares_to_empty:
-                if find_square_by_letter_adress(square, board_state) != '':
-                    all_empty = False
-                    break
-            if none_under_attack and all_empty:
-                legal_castling_moves.append('e' + str(line_number) + 'h' + str(line_number))
+        squares_affected_by_king = ['e' + str(line_number), 'f' + str(line_number), 'g' + str(line_number)]
+        squares_to_empty = ['f' + str(line_number), 'g' + str(line_number)]
+        none_under_attack = True
+        all_empty = True
+        for square in squares_affected_by_king:
+            if is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
+                none_under_attack = False
+                break
+        for square in squares_to_empty:
+            if find_square_by_letter_adress(square, board_state) != '':
+                all_empty = False
+                break
+        if none_under_attack and all_empty:
+            legal_castling_moves.append('e' + str(line_number) + 'h' + str(line_number))
     return legal_castling_moves
 
 def execute_move(move, board_state, additional_board_info):
+    board_state = copy_2d_list(board_state)
+    additional_board_info = additional_board_info.copy()
+    #castling
     if find_square_by_letter_adress(move[:2], board_state) in ['k', 'K']:
         if move[:2] in ['e1', 'e8']:
             if move[2] == 'a':
@@ -417,33 +415,44 @@ def execute_move(move, board_state, additional_board_info):
                 board_state[king_square[0]][king_square[1]] = ''
                 return board_state, modify_additional_board_info(move, additional_board_info)
 
-
-
     from_square = letter_adress_to_num(move[:2])
     to = letter_adress_to_num(move[2:])
     moving_piece = board_state[from_square[0]][from_square[1]]
     board_state[from_square[0]][from_square[1]] = ''
-    #captured = board_state[to[0]][to[1]]
-    # en passant
-    if moving_piece in ['p', 'P'] and move[0] != move[2] and board_state[to[0]][to[1]] == '':#if pawn, takes, empty square => en passant
-        take_square = letter_adress_to_num(str(move[2]) + str(move[1]))
-        board_state[take_square[0]][take_square[1]] = ''
+    #special pawn moves
+    if moving_piece in ['p', 'P']:
+        #en passant
+        if move[0] != move[2] and board_state[to[0]][to[1]] == '':#if pawn, takes, empty square => en passant
+            take_square = letter_adress_to_num(str(move[2]) + str(move[1]))
+            board_state[take_square[0]][take_square[1]] = ''
+
+        board_state[to[0]][to[1]] = moving_piece
+        #promotion
+        if (to[0] == 0 or to[0] == 7):
+            pawn_is_upper = moving_piece.isupper()
+            while True:
+                replacing_piece = 'q'#input('Promote the pawn to: ')
+                if replacing_piece in ['r', 'n', 'b', 'q']:
+                    if pawn_is_upper:
+                        replacing_piece = replacing_piece.upper()
+                    board_state[to[0]][to[1]] = replacing_piece
+                    break
+                else:
+                    print('invalid piece code, try again!')
+        #if double move, add target square behind the pawn
+        if abs(int(move[1]) - int(move[3])) != 1:
+            target_square_to_add = str(move[0]) + str(int((int(move[1]) + int(move[3])) / 2))#file same, rank between the start and arrival ranks of the pawn
+            additional_board_info = modify_en_passant_target_square(target_square_to_add, additional_board_info)
+        else:
+            additional_board_info = modify_en_passant_target_square(None, additional_board_info)
+    else:
+        additional_board_info = modify_en_passant_target_square(None, additional_board_info)
 
     board_state[to[0]][to[1]] = moving_piece
-    #promotion
-    if moving_piece in ['p', 'P'] and (to[0] == 0 or to[0] == 7):
-        pawn_is_upper = moving_piece.isupper()
-        while True:
-            replacing_piece = 'q'#input('Promote the pawn to: ')
-            if replacing_piece in ['r', 'n', 'b', 'q']:
-                if pawn_is_upper:
-                    replacing_piece = replacing_piece.upper()
-                board_state[to[0]][to[1]] = replacing_piece
-                break
-            else:
-                print('invalid piece code, try again!')
-
     return board_state, modify_additional_board_info(move, additional_board_info)
+
+
+
 
 def legal_moves(color, board_state, additional_board_info, check_matters=True, check_castling=True):
     legal = []
@@ -457,7 +466,7 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True, c
                 square = square.lower()
                 position = [row, column]
                 if square == 'p':
-                    legal += legal_moves_pawn(position, board_state, additional_board_info[0][0])
+                    legal += legal_moves_pawn(position, board_state, additional_board_info)
                 if square == 'n':
                     legal += legal_moves_all_direction_pieces(KNIGHT_DIRECTIONS, 1, position, board_state)
                 if square == 'b':
@@ -474,7 +483,7 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True, c
     if check_matters:
         no_check_moves = []
         for move in legal:
-            board_after_move, _ = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
+            board_after_move, _ = execute_move(move, board_state, additional_board_info)
             if color == 'black':
                 attacker = 'white'
             else:
@@ -540,7 +549,7 @@ def minimax(side_to_move, board_state, additional_board_info, depth):
         if side_to_move == 'white':
             best_eval = -1000
             for move in legals:
-                new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
+                new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
                 position_evaluation = minimax('black', new_board_state, new_additional_board_info, depth - 1)
                 if best_eval < position_evaluation:
                     best_eval = position_evaluation
@@ -548,13 +557,11 @@ def minimax(side_to_move, board_state, additional_board_info, depth):
         else:
             best_eval = 1000
             for move in legals:
-                new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state),
-                                                                          copy_2d_list(additional_board_info))
+                new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
                 position_evaluation = minimax('white', new_board_state, new_additional_board_info, depth - 1)
                 if best_eval > position_evaluation:
                     best_eval = position_evaluation
             return best_eval
-
 
 def find_best_move(side_to_move, board_state, additional_board_info, depth):
     legals = legal_moves(side_to_move, board_state, additional_board_info)
@@ -562,7 +569,7 @@ def find_best_move(side_to_move, board_state, additional_board_info, depth):
         best_eval = -1000
         best_moves = []
         for move in legals:
-            new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
+            new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
             position_evaluation = minimax('black', new_board_state, new_additional_board_info, depth)
             if position_evaluation > best_eval:
                 best_eval = position_evaluation
@@ -575,7 +582,7 @@ def find_best_move(side_to_move, board_state, additional_board_info, depth):
         best_eval = 1000
         best_moves = []
         for move in legals:
-            new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
+            new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
             position_evaluation = minimax('white', new_board_state, new_additional_board_info, depth)
             if position_evaluation < best_eval:
                 best_eval = position_evaluation
@@ -623,12 +630,15 @@ def pvp(board_state=None, additional_board_info=None):
         m = get_move_from_gui('white', board_state, additional_board_info)
         board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
-
+        print('\nmove:', m)
+        print('additional board info', additional_board_info)
         print('checkmate:', is_checkmate('white', board_state, additional_board_info))
         print('static eval:', static_evaluation(board_state))
         m = get_move_from_gui('black', board_state, additional_board_info)
         board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
+        print('\nmove:', m)
+        print('additional board info', additional_board_info)
         print('checkmate:', is_checkmate('black', board_state, additional_board_info))
         print('static eval:', static_evaluation(board_state))
 
@@ -647,5 +657,5 @@ if WITH_GUI:
     pygame.display.set_caption('Chess')
     clock = pygame.time.Clock()
 
-play_vs_ai()
-#pvp()
+#play_vs_ai()
+pvp()
