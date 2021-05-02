@@ -11,9 +11,6 @@ def copy_2d_list(list_to_copy):
         new_list.append(i.copy())
     return new_list
 
-def copy_dict(dict_to_copy):
-    pass
-
 def setup_board():
     #lower case means black pieces, upper case means white pieces
     pawns = ['p' for _ in range(8)]
@@ -35,6 +32,40 @@ def setup_board():
 def setup_additional_board_info():
     #side to move, white can castle kingside, white can castle queenside, black can castle kingside, black can castle queenside, en passant target square
     return ['white', True, True, True, True, None]
+
+def setup_by_FEN(fen):
+    fen_chunks = fen.split(' ')
+    lines_on_board = fen_chunks[0].split('/')
+    #board setup
+    board_setup = []
+    for line in lines_on_board:
+        new_line = []
+        for char in line:
+            if char in 'rnbqkpRNBQKP':
+                new_line.append(char)
+            else:
+                new_line += ['' for _ in range(int(char))]
+        board_setup.append(new_line)
+    if BOARD_FLIPPED:
+        board_setup.reverse()
+    #additional info setup
+        #side to move
+    if fen_chunks[1] == 'w':
+        additional_board_info = ['white']
+    else:
+        additional_board_info = ['black']
+        #castling ability
+    for i in fen_chunks[2]:
+        if i == '-':
+            additional_board_info.append(False)
+        else:
+            additional_board_info.append(True)
+        #en passant target
+    if fen_chunks[3] != '-':
+        additional_board_info.append(fen_chunks[3])
+    else:
+        additional_board_info.append(None)
+    return board_setup, additional_board_info
 
 def uppercase_maker_for_setup(lowercase_list):
     uppercase_list = []
@@ -347,7 +378,6 @@ def castling(board_state, side_to_move, additional_board_info):
         can_castle = additional_board_info[3:5]
         attacker = 'white'
         line_number = 8
-    print(can_castle)
 
     attacker_legal_moves = None
     if can_castle[1]:#long castling
@@ -434,8 +464,7 @@ def execute_move(move, board_state, additional_board_info):
                 replacing_piece = 'q'#input('Promote the pawn to: ')
                 if replacing_piece in ['r', 'n', 'b', 'q']:
                     if pawn_is_upper:
-                        replacing_piece = replacing_piece.upper()
-                    board_state[to[0]][to[1]] = replacing_piece
+                        moving_piece = replacing_piece.upper()
                     break
                 else:
                     print('invalid piece code, try again!')
@@ -450,9 +479,6 @@ def execute_move(move, board_state, additional_board_info):
 
     board_state[to[0]][to[1]] = moving_piece
     return board_state, modify_additional_board_info(move, additional_board_info)
-
-
-
 
 def legal_moves(color, board_state, additional_board_info, check_matters=True, check_castling=True):
     legal = []
@@ -642,12 +668,6 @@ def pvp(board_state=None, additional_board_info=None):
         print('checkmate:', is_checkmate('black', board_state, additional_board_info))
         print('static eval:', static_evaluation(board_state))
 
-        
-BOARD_FLIPPED = True
-
-KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
-BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
 
 WITH_GUI = True
 if WITH_GUI:
@@ -657,5 +677,14 @@ if WITH_GUI:
     pygame.display.set_caption('Chess')
     clock = pygame.time.Clock()
 
+
+BOARD_FLIPPED = True
+
+KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
+BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
+
+
 #play_vs_ai()
-pvp()
+board_state, additional_board_info = setup_by_FEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
+pvp(board_state=board_state, additional_board_info=additional_board_info)
