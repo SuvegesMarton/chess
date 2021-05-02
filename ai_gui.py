@@ -5,6 +5,18 @@ from random import randint, choice
 #F0D9B5; - 240, 217, 181
 #946f51; - 148, 111, 81
 
+WITH_GUI = True
+if WITH_GUI:
+    SQUARE_SIZE = 100
+    pygame.init()
+    gameDisplay = pygame.display.set_mode((SQUARE_SIZE*8, SQUARE_SIZE*8))
+    pygame.display.set_caption('Chess')
+    clock = pygame.time.Clock()
+
+KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
+BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
+ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
+
 def copy_2d_list(list_to_copy):
     new_list = []
     for i in list_to_copy:
@@ -48,6 +60,8 @@ def setup_by_FEN(fen):
         board_setup.append(new_line)
     if BOARD_FLIPPED:
         board_setup.reverse()
+        for i in range(len(board_setup)):
+            board_setup[i].reverse()
     #additional info setup
         #side to move
     if fen_chunks[1] == 'w':
@@ -617,74 +631,41 @@ def find_best_move(side_to_move, board_state, additional_board_info, depth):
                 best_moves.append(move)
         return choice(best_moves)
 
-def play_vs_ai(board_state=None, additional_board_info=None):
+def main(board_state=None, additional_board_info=None):
     if board_state == None:
         board_state = setup_board()
     if additional_board_info == None:
         additional_board_info = setup_additional_board_info()
     display_with_gui(board_state)
+    move = None
     while True:
-        if BOARD_FLIPPED:
-            w_l = legal_moves('white', board_state, additional_board_info)
-            m = find_best_move('white', board_state, additional_board_info, 2)
-        else:
-            m = get_move_from_gui('white', board_state, additional_board_info)
-        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
-        display_with_gui(board_state)
-        if is_checkmate('white', board_state, additional_board_info):
-            print('Game over, white won!')
-            break
+        if additional_board_info[0] == 'white':
+            if WHITE == 0:
+                move = get_move_from_gui('white', board_state, additional_board_info)
+            elif WHITE == 1:
+                move = find_best_move('white', board_state, additional_board_info, DEPTH)
+            board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
+        elif additional_board_info[0] == 'black':
+            if BLACK == 0:
+                move = get_move_from_gui('black', board_state, additional_board_info)
+            elif BLACK == 1:
+                move = find_best_move('black', board_state, additional_board_info, DEPTH)
+            board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
-        if BOARD_FLIPPED:
-            m = get_move_from_gui('black', board_state, additional_board_info)
-        else:
-            m = find_best_move('black', board_state, additional_board_info, 2)
-        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
-        if is_checkmate('black', board_state, additional_board_info):
-            print('Game over, black won!')
-            break
-
-def pvp(board_state=None, additional_board_info=None):
-    if board_state == None:
-        board_state = setup_board()
-    if additional_board_info == None:
-        additional_board_info = setup_additional_board_info()
-    display_with_gui(board_state)
-    while True:
-        m = get_move_from_gui('white', board_state, additional_board_info)
-        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
-        display_with_gui(board_state)
-        print('\nmove:', m)
-        print('additional board info', additional_board_info)
-        print('checkmate:', is_checkmate('white', board_state, additional_board_info))
-        print('static eval:', static_evaluation(board_state))
-        m = get_move_from_gui('black', board_state, additional_board_info)
-        board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
-        display_with_gui(board_state)
-        print('\nmove:', m)
+        print('\nmove:', move)
         print('additional board info', additional_board_info)
         print('checkmate:', is_checkmate('black', board_state, additional_board_info))
         print('static eval:', static_evaluation(board_state))
 
-
-WITH_GUI = True
-if WITH_GUI:
-    SQUARE_SIZE = 100
-    pygame.init()
-    gameDisplay = pygame.display.set_mode((SQUARE_SIZE*8, SQUARE_SIZE*8))
-    pygame.display.set_caption('Chess')
-    clock = pygame.time.Clock()
-
-
 BOARD_FLIPPED = True
 
-KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
-BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
-ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
+WHITE = 0  #0 = human player, 1 = engine
+BLACK = 0  #0 = human player, 1 = engine
 
+DEPTH = 2
 
 #play_vs_ai()
 board_state, additional_board_info = setup_by_FEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
-pvp(board_state=board_state, additional_board_info=additional_board_info)
+main(board_state=board_state, additional_board_info=additional_board_info)
