@@ -532,6 +532,57 @@ def static_evaluation(board_state):
                 material_sum += piece_values[j]
     return material_sum
 
+def minimax(side_to_move, board_state, additional_board_info, depth):
+    if depth == 0:
+        return static_evaluation(board_state)
+    else:
+        legals = legal_moves(side_to_move, board_state, additional_board_info)
+        if side_to_move == 'white':
+            best_eval = -1000
+            for move in legals:
+                new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
+                position_evaluation = minimax('black', new_board_state, new_additional_board_info, depth - 1)
+                if best_eval < position_evaluation:
+                    best_eval = position_evaluation
+            return best_eval
+        else:
+            best_eval = 1000
+            for move in legals:
+                new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state),
+                                                                          copy_2d_list(additional_board_info))
+                position_evaluation = minimax('white', new_board_state, new_additional_board_info, depth - 1)
+                if best_eval > position_evaluation:
+                    best_eval = position_evaluation
+            return best_eval
+
+
+def find_best_move(side_to_move, board_state, additional_board_info, depth):
+    legals = legal_moves(side_to_move, board_state, additional_board_info)
+    if side_to_move == 'white':
+        best_eval = -1000
+        best_moves = []
+        for move in legals:
+            new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
+            position_evaluation = minimax('black', new_board_state, new_additional_board_info, depth)
+            if position_evaluation > best_eval:
+                best_eval = position_evaluation
+                best_moves = [move]
+            elif position_evaluation == best_eval:
+                best_moves.append(move)
+
+        return choice(best_moves)
+    elif side_to_move == 'black':
+        best_eval = 1000
+        best_moves = []
+        for move in legals:
+            new_board_state, new_additional_board_info = execute_move(move, copy_2d_list(board_state), copy_2d_list(additional_board_info))
+            position_evaluation = minimax('white', new_board_state, new_additional_board_info, depth)
+            if position_evaluation < best_eval:
+                best_eval = position_evaluation
+                best_moves = [move]
+            elif position_evaluation == best_eval:
+                best_moves.append(move)
+        return choice(best_moves)
 
 def play_vs_ai(board_state=None, additional_board_info=None):
     if board_state == None:
@@ -542,18 +593,25 @@ def play_vs_ai(board_state=None, additional_board_info=None):
     while True:
         if BOARD_FLIPPED:
             w_l = legal_moves('white', board_state, additional_board_info)
-            m = choice(w_l)
+            m = find_best_move('white', board_state, additional_board_info, 2)
         else:
             m = get_move_from_gui('white', board_state, additional_board_info)
         board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
+        if is_checkmate('white', board_state, additional_board_info):
+            print('Game over, white won!')
+            break
+
+
         if BOARD_FLIPPED:
             m = get_move_from_gui('black', board_state, additional_board_info)
         else:
-            b_l = legal_moves('black', board_state, additional_board_info)
-            m = choice(b_l)
+            m = find_best_move('black', board_state, additional_board_info, 2)
         board_state, additional_board_info = execute_move(m, board_state, additional_board_info)
         display_with_gui(board_state)
+        if is_checkmate('black', board_state, additional_board_info):
+            print('Game over, black won!')
+            break
 
 def pvp(board_state=None, additional_board_info=None):
     if board_state == None:
@@ -575,7 +633,7 @@ def pvp(board_state=None, additional_board_info=None):
         print('static eval:', static_evaluation(board_state))
 
         
-BOARD_FLIPPED = False
+BOARD_FLIPPED = True
 
 KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
 BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
@@ -589,5 +647,5 @@ if WITH_GUI:
     pygame.display.set_caption('Chess')
     clock = pygame.time.Clock()
 
-#play_vs_ai()
-pvp()
+play_vs_ai()
+#pvp()
