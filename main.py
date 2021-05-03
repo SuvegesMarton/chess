@@ -1,17 +1,12 @@
 import pygame
 import numpy as np
 import cv2
-from random import randint, choice
+
+import random1
+import engine2
+
 #F0D9B5; - 240, 217, 181
 #946f51; - 148, 111, 81
-
-WITH_GUI = True
-if WITH_GUI:
-    SQUARE_SIZE = 100
-    pygame.init()
-    gameDisplay = pygame.display.set_mode((SQUARE_SIZE*8, SQUARE_SIZE*8))
-    pygame.display.set_caption('Chess')
-    clock = pygame.time.Clock()
 
 KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2], [-1, -2]]
 BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
@@ -87,7 +82,8 @@ def uppercase_maker_for_setup(lowercase_list):
         uppercase_list.append(i.upper())
     return uppercase_list
 
-def get_move_from_gui(color, board_state, additional_board_info):
+def get_move_from_gui(board_state, additional_board_info):
+    color = additional_board_info[0]
     legals = legal_moves(color, board_state, additional_board_info)
     move_half_done = False
     first_half = 0
@@ -141,14 +137,14 @@ def apply_animation(img, animation_code):
     if animation_code == 0:
         return img
     elif animation_code == 1:
-        squares_filter = cv2.imread('GUI/corners.png')
+        squares_filter = cv2.imread('GUI/bases/corners.png')
         for i in range(len(squares_filter)):
             for j in range(len(squares_filter[i])):
                 if not np.array_equal(squares_filter[i][j], white):
                     img[i][j] = squares_filter[i][j]
         return img
     elif animation_code == 2:
-        circle_filter = cv2.imread('GUI/middle_circle.png')
+        circle_filter = cv2.imread('GUI/bases/middle_circle.png')
         for i in range(len(circle_filter)):
             for j in range(len(circle_filter[i])):
                 if not np.array_equal(circle_filter[i][j], white):
@@ -158,7 +154,7 @@ def apply_animation(img, animation_code):
         return img
 
 def load_img(img_name):
-    location = 'GUI/' + img_name + '.png'
+    location = 'GUI/generated/' + img_name + '.png'
     img = pygame.image.load(location)
     img = pygame.transform.scale(img, (SQUARE_SIZE, SQUARE_SIZE))
     return img
@@ -189,7 +185,7 @@ def create_img(img_name):
 
     else:
         figure_coords = figure_topleft_corners[img_name[:2]]
-        figure_image = cv2.imread('GUI/figures3.png', cv2.IMREAD_COLOR)
+        figure_image = cv2.imread('GUI/bases/figures.png', cv2.IMREAD_COLOR)
         x, y, w, h = figure_coords[1]*200, figure_coords[0]*200, 200, 200
         figure_image = figure_image[y:y + h, x:x + w]
 
@@ -202,7 +198,7 @@ def create_img(img_name):
                     figure_image[i][j] = bg_color
     image = apply_animation(figure_image, img_name[-1])
 
-    cv2.imwrite('GUI/' + img_name + '.png', image)
+    cv2.imwrite('GUI/generated/' + img_name + '.png', image)
 
 def get_image(img_name):
     try:
@@ -546,11 +542,12 @@ def is_check(attacker, board_state, additional_board_info):
             return True
     return False
 
-def is_checkmate(attacker, board_state, additional_board_info, surely_in_check=False):
-    if attacker == 'white':
-        attacked = 'black'
+def is_checkmate(board_state, additional_board_info, surely_in_check=False):
+    attacked = additional_board_info[0]
+    if attacked == 'white':
+        attacker = 'black'
     else:
-        attacked = 'white'
+        attacker = 'white'
     if surely_in_check:
         if len(legal_moves(attacked, board_state, additional_board_info)) == 0:
             return True
@@ -558,78 +555,6 @@ def is_checkmate(attacker, board_state, additional_board_info, surely_in_check=F
         if len(legal_moves(attacked, board_state, additional_board_info)) == 0:
             return True
     return False
-
-def static_evaluation(board_state):
-    #positive-good for white, negative-good for black
-    #material
-    piece_values = {'R': 5,
-                    'N': 3,
-                    'B': 3,
-                    'Q': 9,
-                    'P': 1,
-                    'r': -5,
-                    'n': -3,
-                    'b': -3,
-                    'q': -9,
-                    'p': -1
-                    }
-    material_sum = 0
-    for i in board_state:
-        for j in i:
-            if not j in ['', 'k', 'K']:
-
-                material_sum += piece_values[j]
-    return material_sum
-
-def minimax(side_to_move, board_state, additional_board_info, depth):
-    if depth == 0:
-        return static_evaluation(board_state)
-    else:
-        legals = legal_moves(side_to_move, board_state, additional_board_info)
-        if side_to_move == 'white':
-            best_eval = -1000
-            for move in legals:
-                new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
-                position_evaluation = minimax('black', new_board_state, new_additional_board_info, depth - 1)
-                if best_eval < position_evaluation:
-                    best_eval = position_evaluation
-            return best_eval
-        else:
-            best_eval = 1000
-            for move in legals:
-                new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
-                position_evaluation = minimax('white', new_board_state, new_additional_board_info, depth - 1)
-                if best_eval > position_evaluation:
-                    best_eval = position_evaluation
-            return best_eval
-
-def find_best_move(side_to_move, board_state, additional_board_info, depth):
-    legals = legal_moves(side_to_move, board_state, additional_board_info)
-    if side_to_move == 'white':
-        best_eval = -1000
-        best_moves = []
-        for move in legals:
-            new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
-            position_evaluation = minimax('black', new_board_state, new_additional_board_info, depth)
-            if position_evaluation > best_eval:
-                best_eval = position_evaluation
-                best_moves = [move]
-            elif position_evaluation == best_eval:
-                best_moves.append(move)
-
-        return choice(best_moves)
-    elif side_to_move == 'black':
-        best_eval = 1000
-        best_moves = []
-        for move in legals:
-            new_board_state, new_additional_board_info = execute_move(move, board_state, additional_board_info)
-            position_evaluation = minimax('white', new_board_state, new_additional_board_info, depth)
-            if position_evaluation < best_eval:
-                best_eval = position_evaluation
-                best_moves = [move]
-            elif position_evaluation == best_eval:
-                best_moves.append(move)
-        return choice(best_moves)
 
 def main(board_state=None, additional_board_info=None):
     if board_state == None:
@@ -641,31 +566,51 @@ def main(board_state=None, additional_board_info=None):
     while True:
         if additional_board_info[0] == 'white':
             if WHITE == 0:
-                move = get_move_from_gui('white', board_state, additional_board_info)
+                move = get_move_from_gui(board_state, additional_board_info)
             elif WHITE == 1:
-                move = find_best_move('white', board_state, additional_board_info, DEPTH)
+                move = random1.choose_move(board_state, additional_board_info)
+            elif WHITE == 2:
+                move = engine2.find_best_move(board_state, additional_board_info, DEPTH)
             board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
         elif additional_board_info[0] == 'black':
             if BLACK == 0:
-                move = get_move_from_gui('black', board_state, additional_board_info)
+                move = get_move_from_gui(board_state, additional_board_info)
             elif BLACK == 1:
-                move = find_best_move('black', board_state, additional_board_info, DEPTH)
+                move = random1.choose_move(board_state, additional_board_info)
+            elif BLACK == 2:
+                move = engine2.find_best_move(board_state, additional_board_info, DEPTH)
             board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
         display_with_gui(board_state)
+        checkmate = is_checkmate(board_state, additional_board_info)
         print('\nmove:', move)
         print('additional board info', additional_board_info)
-        print('checkmate:', is_checkmate('black', board_state, additional_board_info))
-        print('static eval:', static_evaluation(board_state))
+        print('checkmate:', checkmate)
+        print('engine 2 static eval:', engine2.static_evaluation(board_state))
 
-BOARD_FLIPPED = True
 
-WHITE = 0  #0 = human player, 1 = engine
-BLACK = 0  #0 = human player, 1 = engine
+
+
+
+BOARD_FLIPPED = False
+
+WHITE = 2
+BLACK = 1
+#0 = human player
+#1 = random moves
+#2 = bruteforce minimax algorithm
+
 
 DEPTH = 2
 
-#play_vs_ai()
-board_state, additional_board_info = setup_by_FEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
-main(board_state=board_state, additional_board_info=additional_board_info)
+if __name__ == "__main__":
+    WITH_GUI = True
+    if WITH_GUI:
+        SQUARE_SIZE = 100
+        pygame.init()
+        gameDisplay = pygame.display.set_mode((SQUARE_SIZE * 8, SQUARE_SIZE * 8))
+        pygame.display.set_caption('Chess')
+        clock = pygame.time.Clock()
+    board_state, additional_board_info = setup_by_FEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
+    main(board_state=board_state, additional_board_info=additional_board_info)
