@@ -4,6 +4,7 @@ import cv2
 
 import random1
 import engine2
+import engine3
 
 #F0D9B5; - 240, 217, 181
 #946f51; - 148, 111, 81
@@ -12,11 +13,13 @@ KNIGHT_DIRECTIONS = [[2, 1], [2, -1], [1, 2], [1, -2], [-2, 1], [-2, -1], [-1, 2
 BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
 ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
 
+
 def copy_2d_list(list_to_copy):
     new_list = []
     for i in list_to_copy:
         new_list.append(i.copy())
     return new_list
+
 
 def setup_board():
     #lower case means black pieces, upper case means white pieces
@@ -36,9 +39,11 @@ def setup_board():
         board.append(pieces)
         return board
 
+
 def setup_additional_board_info():
     #side to move, white can castle kingside, white can castle queenside, black can castle kingside, black can castle queenside, en passant target square
     return ['white', True, True, True, True, None]
+
 
 def setup_by_FEN(fen):
     fen_chunks = fen.split(' ')
@@ -76,11 +81,13 @@ def setup_by_FEN(fen):
         additional_board_info.append(None)
     return board_setup, additional_board_info
 
+
 def uppercase_maker_for_setup(lowercase_list):
     uppercase_list = []
     for i in lowercase_list:
         uppercase_list.append(i.upper())
     return uppercase_list
+
 
 def get_move_from_gui(board_state, additional_board_info):
     color = additional_board_info[0]
@@ -95,26 +102,27 @@ def get_move_from_gui(board_state, additional_board_info):
                 line, file = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
                 clicked_square = board_state[line][file]
                 if move_half_done == True:
-                    assembled_move = first_half + num_adress_to_letter((line, file))
+                    assembled_move = first_half + num_address_to_letter((line, file))
                     if assembled_move in legals:
                         return assembled_move
                     elif (color == 'white' and clicked_square.isupper()) or (color == 'black' and clicked_square.islower()):
-                        first_half = num_adress_to_letter((line, file))
+                        first_half = num_address_to_letter((line, file))
                         display_with_gui(board_state, selected_piece_position=[line, file], legal_moves=legals)
                     else:
                         move_half_done = False
 
                 elif (color == 'white' and clicked_square.isupper()) or (color == 'black' and clicked_square.islower()):
-                    first_half = num_adress_to_letter((line, file))
+                    first_half = num_address_to_letter((line, file))
                     move_half_done = True
                     display_with_gui(board_state, selected_piece_position=[line, file], legal_moves=legals)
+
 
 def create_square_animation_map(square_num, board_state, legal_moves):
     #0 nothing
     #1 corners
     #2 green circle
     #3 check
-    square_letter = num_adress_to_letter(square_num)
+    square_letter = num_address_to_letter(square_num)
     moves_to_animate = []
     for move in legal_moves:
         if move[:2] == square_letter:
@@ -123,13 +131,14 @@ def create_square_animation_map(square_num, board_state, legal_moves):
     map = [[0 for i in range(8)] for i in range(8)]
 
     for i in moves_to_animate:
-        if find_square_by_letter_adress(i[2:], board_state) != '':
-            num_adress = letter_adress_to_num(i[2:])
-            map[num_adress[0]][num_adress[1]] = 1
+        if find_square_by_letter_address(i[2:], board_state) != '':
+            num_address = letter_address_to_num(i[2:])
+            map[num_address[0]][num_address[1]] = 1
         else:
-            num_adress = letter_adress_to_num(i[2:])
-            map[num_adress[0]][num_adress[1]] = 2
+            num_address = letter_address_to_num(i[2:])
+            map[num_address[0]][num_address[1]] = 2
     return map
+
 
 def apply_animation(img, animation_code):
     animation_code = int(animation_code)
@@ -153,11 +162,13 @@ def apply_animation(img, animation_code):
     else:
         return img
 
+
 def load_img(img_name):
     location = 'GUI/generated/' + img_name + '.png'
     img = pygame.image.load(location)
     img = pygame.transform.scale(img, (SQUARE_SIZE, SQUARE_SIZE))
     return img
+
 
 def create_img(img_name):
     bg_color = [255,0,0]
@@ -200,6 +211,7 @@ def create_img(img_name):
 
     cv2.imwrite('GUI/generated/' + img_name + '.png', image)
 
+
 def get_image(img_name):
     try:
         img = load_img(img_name)
@@ -208,6 +220,7 @@ def get_image(img_name):
         create_img(img_name)
         img = load_img(img_name)
     return img
+
 
 def img_format_name_from_square(square):
     if square.isupper():
@@ -223,11 +236,13 @@ def img_format_name_from_square(square):
         piece_name = 'e'
     return piece_color + piece_name
 
+
 def display_board(board):
     for row in board:
         for square in row:
             print(square + ', ', end='')
         print('')
+
 
 def display_with_gui(board, selected_piece_position=None, legal_moves=None):
     y = 0
@@ -249,38 +264,43 @@ def display_with_gui(board, selected_piece_position=None, legal_moves=None):
         y += SQUARE_SIZE
     pygame.display.update()
 
-def num_adress_to_letter(adress):
+
+def num_address_to_letter(address):
     #input: 0-7
     if not BOARD_FLIPPED:
         letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        num = 8 - adress[0]
-        lett = letters[adress[1]]
+        num = 8 - address[0]
+        lett = letters[address[1]]
     else:
         letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        num = 8 - (7 - adress[0])
-        lett = letters[(7 - adress[1])]
+        num = 8 - (7 - address[0])
+        lett = letters[(7 - address[1])]
     return str(str(lett) + str(num))
 
-def letter_adress_to_num( adress):
+
+def letter_address_to_num( address):
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    column = letters.index(adress[0])
+    column = letters.index(address[0])
     if not BOARD_FLIPPED:
-        row = 8 - int(adress[1])
+        row = 8 - int(address[1])
     else:
-        row = 8 - int(adress[1])
+        row = 8 - int(address[1])
         column = 7 - column
         row = 7 - row
     return row, column
 
-def find_square_by_letter_adress(adress, board_state):
-    row, column = letter_adress_to_num(adress)
+
+def find_square_by_letter_address(address, board_state):
+    row, column = letter_address_to_num(address)
     return board_state[row][column]
+
 
 def find_square_by_piece(piece, board_state):
     for i, row in enumerate(board_state):
         if piece in row:
             return [i, row.index(piece)]
     return None
+
 
 def modify_additional_board_info(move, additional_board_info, change_side_to_move=True):
     if additional_board_info[0] == 'white' and change_side_to_move:
@@ -305,14 +325,17 @@ def modify_additional_board_info(move, additional_board_info, change_side_to_mov
 
     return additional_board_info
 
+
 def modify_en_passant_target_square(new_target, additional_board_info):
     additional_board_info[5] = new_target
     return additional_board_info
 
-def find_square_by_number_adress(adressY, adressX, board_state):
-    return board_state[adressY][adressX]
 
-def is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=None):#square adress input in letter format, does not work on attacker-color squares
+def find_square_by_number_address(addressY, addressX, board_state):
+    return board_state[addressY][addressX]
+
+
+def is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=None):#square address input in letter format, does not work on attacker-color squares
     if attacker_legal_moves == None:
         attacker_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_matters=False, check_castling=False)
     counter = 0
@@ -321,9 +344,10 @@ def is_square_attacked(attacker, square, board_state, additional_board_info, att
             return True
     return False
 
+
 def legal_moves_all_direction_pieces(directions, range, position, board_state):
     legals = []
-    piece = find_square_by_number_adress(position[0], position[1], board_state)
+    piece = find_square_by_number_address(position[0], position[1], board_state)
     for direction in directions:
         range_counter = 0
         new_position = position
@@ -332,15 +356,16 @@ def legal_moves_all_direction_pieces(directions, range, position, board_state):
             new_position = [new_position[0] + direction[0], new_position[1] + direction[1]]
             if 0 > new_position[0] or new_position[0] > 7 or 0 > new_position[1] or new_position[1] > 7:
                 break
-            square = find_square_by_number_adress(new_position[0], new_position[1], board_state)
+            square = find_square_by_number_address(new_position[0], new_position[1], board_state)
             if square == '':
-                legals.append(num_adress_to_letter(position) + num_adress_to_letter(new_position))
+                legals.append(num_address_to_letter(position) + num_address_to_letter(new_position))
             elif square.isupper() != piece.isupper():
-                legals.append(num_adress_to_letter(position) + num_adress_to_letter(new_position))
+                legals.append(num_address_to_letter(position) + num_address_to_letter(new_position))
                 break
             elif square.isupper() == piece.isupper():
                 break
     return legals
+
 
 def legal_moves_pawn(position, board_state, additional_board_info):
     legals = []
@@ -352,31 +377,38 @@ def legal_moves_pawn(position, board_state, additional_board_info):
         forward_direction = [-1, 0]
         capture_directions = [[-1, 1], [-1, -1]]
 
+    # capturing
+    for dir in capture_directions:
+        capture_square_position = [position[0] + dir[0], position[1] + dir[1]]
+        if 0 <= capture_square_position[0] < 8 and 0 <= capture_square_position[1] < 8 and \
+                board_state[capture_square_position[0]][capture_square_position[1]] != '' and \
+                board_state[capture_square_position[0]][capture_square_position[1]].isupper() != pawn.isupper():
+            move = num_address_to_letter(position) + num_address_to_letter(capture_square_position)
+            legals.append(move)
     #moving forward
     forward_square_position = [position[0] + forward_direction[0], position[1] + forward_direction[1]]
     can_move_forward = False
     if 0 <= forward_square_position[0] < 8 and 0 <= forward_square_position[1] < 8 and board_state[forward_square_position[0]][forward_square_position[1]] == '':
-        move = num_adress_to_letter(position) + num_adress_to_letter(forward_square_position)
+        move = num_address_to_letter(position) + num_address_to_letter(forward_square_position)
         legals.append(move)
         can_move_forward = True
-    #capturing
-    for dir in capture_directions:
-        capture_square_position = [position[0] + dir[0], position[1] + dir[1]]
-        if 0 <= capture_square_position[0] < 8 and 0 <= capture_square_position[1] < 8 and board_state[capture_square_position[0]][capture_square_position[1]] != '' and board_state[capture_square_position[0]][capture_square_position[1]].isupper() != pawn.isupper():
-            move = num_adress_to_letter(position) + num_adress_to_letter(capture_square_position)
-            legals.append(move)
+
     #double move
     if can_move_forward:
         double_forward_square_position = [forward_square_position[0] + forward_direction[0], forward_square_position[1] + forward_direction[1]]
         if 0 <= double_forward_square_position[0] < 8 and 0 <= double_forward_square_position[1] < 8 and board_state[double_forward_square_position[0]][double_forward_square_position[1]] == '':
             if position[0] == 6 and ((pawn.isupper() and not BOARD_FLIPPED) or (pawn.islower() and BOARD_FLIPPED)) or position[0] == 1 and ((pawn.islower() and not BOARD_FLIPPED) or (pawn.isupper() and BOARD_FLIPPED)):
-                move = num_adress_to_letter(position) + num_adress_to_letter(double_forward_square_position)
+                move = num_address_to_letter(position) + num_address_to_letter(double_forward_square_position)
                 legals.append(move)
     #en passant
     en_passant_target_square = additional_board_info[5]
     if en_passant_target_square != None:
-        pass
+        if num_address_to_letter([(position[0] + capture_directions[0][0]) % 7, (position[1] + capture_directions[0][1]) % 7]) == en_passant_target_square:
+            legals.append(num_address_to_letter(position) + en_passant_target_square)
+        if num_address_to_letter([(position[0] + capture_directions[1][0]) % 7, (position[1] + capture_directions[1][1]) % 7]) == en_passant_target_square:
+                legals.append(num_address_to_letter(position) + en_passant_target_square)
     return legals
+
 
 def castling(board_state, side_to_move, additional_board_info):
     legal_castling_moves = []
@@ -401,7 +433,7 @@ def castling(board_state, side_to_move, additional_board_info):
                 none_under_attack = False
                 break
         for square in squares_to_empty:
-            if find_square_by_letter_adress(square, board_state) != '':
+            if find_square_by_letter_address(square, board_state) != '':
                 all_empty = False
                 break
         if none_under_attack and all_empty:
@@ -418,52 +450,53 @@ def castling(board_state, side_to_move, additional_board_info):
                 none_under_attack = False
                 break
         for square in squares_to_empty:
-            if find_square_by_letter_adress(square, board_state) != '':
+            if find_square_by_letter_address(square, board_state) != '':
                 all_empty = False
                 break
         if none_under_attack and all_empty:
             legal_castling_moves.append('e' + str(line_number) + 'h' + str(line_number))
     return legal_castling_moves
 
+
 def execute_move(move, board_state, additional_board_info):
     board_state = copy_2d_list(board_state)
     additional_board_info = additional_board_info.copy()
     #castling
-    if find_square_by_letter_adress(move[:2], board_state) in ['k', 'K']:
+    if find_square_by_letter_address(move[:2], board_state) in ['k', 'K']:
         if move[:2] in ['e1', 'e8']:
             if move[2] == 'a':
-                rook_square = letter_adress_to_num('a' + move[1])
-                b_file_square = letter_adress_to_num('b' + move[1])
-                new_king_square = letter_adress_to_num('c' + move[1])
-                new_rook_square = letter_adress_to_num('d' + move[1])
-                king_square = letter_adress_to_num('e' + move[1])
-                board_state[new_rook_square[0]][new_rook_square[1]] = find_square_by_number_adress(*rook_square, board_state)
-                board_state[new_king_square[0]][new_king_square[1]] = find_square_by_number_adress(*king_square, board_state)
+                rook_square = letter_address_to_num('a' + move[1])
+                b_file_square = letter_address_to_num('b' + move[1])
+                new_king_square = letter_address_to_num('c' + move[1])
+                new_rook_square = letter_address_to_num('d' + move[1])
+                king_square = letter_address_to_num('e' + move[1])
+                board_state[new_rook_square[0]][new_rook_square[1]] = find_square_by_number_address(*rook_square, board_state)
+                board_state[new_king_square[0]][new_king_square[1]] = find_square_by_number_address(*king_square, board_state)
                 board_state[rook_square[0]][rook_square[1]] = ''
                 board_state[b_file_square[0]][b_file_square[1]] = ''
                 board_state[king_square[0]][king_square[1]] = ''
                 return board_state, modify_additional_board_info(move, additional_board_info)
 
             elif move[2] == 'h':
-                rook_square = letter_adress_to_num('h' + move[1])
-                new_king_square = letter_adress_to_num('g' + move[1])
-                new_rook_square = letter_adress_to_num('f' + move[1])
-                king_square = letter_adress_to_num('e' + move[1])
-                board_state[new_rook_square[0]][new_rook_square[1]] = find_square_by_number_adress(*rook_square, board_state)
-                board_state[new_king_square[0]][new_king_square[1]] = find_square_by_number_adress(*king_square, board_state)
+                rook_square = letter_address_to_num('h' + move[1])
+                new_king_square = letter_address_to_num('g' + move[1])
+                new_rook_square = letter_address_to_num('f' + move[1])
+                king_square = letter_address_to_num('e' + move[1])
+                board_state[new_rook_square[0]][new_rook_square[1]] = find_square_by_number_address(*rook_square, board_state)
+                board_state[new_king_square[0]][new_king_square[1]] = find_square_by_number_address(*king_square, board_state)
                 board_state[rook_square[0]][rook_square[1]] = ''
                 board_state[king_square[0]][king_square[1]] = ''
                 return board_state, modify_additional_board_info(move, additional_board_info)
 
-    from_square = letter_adress_to_num(move[:2])
-    to = letter_adress_to_num(move[2:])
+    from_square = letter_address_to_num(move[:2])
+    to = letter_address_to_num(move[2:])
     moving_piece = board_state[from_square[0]][from_square[1]]
     board_state[from_square[0]][from_square[1]] = ''
     #special pawn moves
     if moving_piece in ['p', 'P']:
         #en passant
         if move[0] != move[2] and board_state[to[0]][to[1]] == '':#if pawn, takes, empty square => en passant
-            take_square = letter_adress_to_num(str(move[2]) + str(move[1]))
+            take_square = letter_address_to_num(str(move[2]) + str(move[1]))
             board_state[take_square[0]][take_square[1]] = ''
 
         board_state[to[0]][to[1]] = moving_piece
@@ -489,6 +522,7 @@ def execute_move(move, board_state, additional_board_info):
 
     board_state[to[0]][to[1]] = moving_piece
     return board_state, modify_additional_board_info(move, additional_board_info)
+
 
 def legal_moves(color, board_state, additional_board_info, check_matters=True, check_castling=True):
     legal = []
@@ -529,6 +563,7 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True, c
         legal = no_check_moves
     return legal
 
+
 def is_check(attacker, board_state, additional_board_info):
     king_position = [0, 0]
     for row in range(len(board_state)):
@@ -536,11 +571,12 @@ def is_check(attacker, board_state, additional_board_info):
             if (board_state[row][square] == 'K' and attacker == 'black') or (board_state[row][square] == 'k' and attacker == 'white'):
                 king_position = [row, square]
     attackers_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_matters=False, check_castling=False)
-    king_position_letter = num_adress_to_letter(king_position)
+    king_position_letter = num_address_to_letter(king_position)
     for move in attackers_legal_moves:
         if king_position_letter == move[2:]:   #if attacker hits the king's square
             return True
     return False
+
 
 def is_checkmate(board_state, additional_board_info, surely_in_check=False):
     attacked = additional_board_info[0]
@@ -556,6 +592,7 @@ def is_checkmate(board_state, additional_board_info, surely_in_check=False):
             return True
     return False
 
+
 def main(board_state=None, additional_board_info=None):
     if board_state == None:
         board_state = setup_board()
@@ -570,7 +607,11 @@ def main(board_state=None, additional_board_info=None):
             elif WHITE == 1:
                 move = random1.choose_move(board_state, additional_board_info)
             elif WHITE == 2:
-                move = engine2.find_best_move(board_state, additional_board_info, DEPTH)
+                move, investigated_positions = engine2.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
+                print("number of investigated positions:", investigated_positions)
+            elif WHITE == 3:
+                move, investigated_positions = engine3.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
+                print("number of investigated positions:", investigated_positions)
             board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
         elif additional_board_info[0] == 'black':
@@ -579,15 +620,20 @@ def main(board_state=None, additional_board_info=None):
             elif BLACK == 1:
                 move = random1.choose_move(board_state, additional_board_info)
             elif BLACK == 2:
-                move = engine2.find_best_move(board_state, additional_board_info, DEPTH)
+                move, investigated_positions = engine2.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
+                print("number of investigated positions:", investigated_positions)
+            elif BLACK == 3:
+                move, investigated_positions = engine3.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
+                print("number of investigated positions:", investigated_positions)
             board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
         display_with_gui(board_state)
         checkmate = is_checkmate(board_state, additional_board_info)
-        print('\nmove:', move)
+        print('move:', move)
         print('additional board info', additional_board_info)
         print('checkmate:', checkmate)
-        print('engine 2 static eval:', engine2.static_evaluation(board_state))
+        print('engine 2 static eval:', round(engine2.static_evaluation(board_state), 3))
+        print("\n")
 
 
 
@@ -595,14 +641,17 @@ def main(board_state=None, additional_board_info=None):
 
 BOARD_FLIPPED = False
 
-WHITE = 2
-BLACK = 1
+WHITE = 0
+BLACK = 0
 #0 = human player
 #1 = random moves
 #2 = bruteforce minimax algorithm
+#3 = minimax with pruning
 
 
-DEPTH = 2
+WHITE_DEPTH = 2
+BLACK_DEPTH = 2
+#depth matters only if the player is engine
 
 if __name__ == "__main__":
     WITH_GUI = True

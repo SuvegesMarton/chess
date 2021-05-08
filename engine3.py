@@ -36,7 +36,7 @@ def static_evaluation(board_state):
     return material_sum
 
 
-def minimax(side_to_move, board_state, additional_board_info, depth):
+def minimax(side_to_move, board_state, additional_board_info, depth, best_so_far):
     if depth == 0:
         return static_evaluation(board_state), 1
     else:
@@ -46,19 +46,23 @@ def minimax(side_to_move, board_state, additional_board_info, depth):
             best_eval = -1000
             for move in legals:
                 new_board_state, new_additional_board_info = main.execute_move(move, board_state, additional_board_info)
-                position_evaluation, inv = minimax('black', new_board_state, new_additional_board_info, depth - 1)
+                position_evaluation, inv = minimax('black', new_board_state, new_additional_board_info, depth - 1, best_eval)
                 investigated_positions += inv
                 if best_eval < position_evaluation:
                     best_eval = position_evaluation
+                if best_eval > best_so_far:
+                    return best_eval, investigated_positions
             return best_eval, investigated_positions
         else:
             best_eval = 1000
             for move in legals:
                 new_board_state, new_additional_board_info = main.execute_move(move, board_state, additional_board_info)
-                position_evaluation, inv = minimax('white', new_board_state, new_additional_board_info, depth - 1)
+                position_evaluation, inv = minimax('white', new_board_state, new_additional_board_info, depth - 1, best_eval)
                 investigated_positions += inv
                 if best_eval > position_evaluation:
                     best_eval = position_evaluation
+                if best_eval < best_so_far:
+                    return best_eval, investigated_positions
             return best_eval, investigated_positions
 
 
@@ -73,7 +77,7 @@ def find_best_move(board_state, additional_board_info, depth):
         best_moves = []
         for move in legals:
             new_board_state, new_additional_board_info = main.execute_move(move, board_state, additional_board_info)
-            position_evaluation, inv = minimax('black', new_board_state, new_additional_board_info, depth)
+            position_evaluation, inv = minimax('black', new_board_state, new_additional_board_info, depth, best_eval)
             investigated_positions += inv
             if position_evaluation > best_eval:
                 best_eval = position_evaluation
@@ -86,7 +90,7 @@ def find_best_move(board_state, additional_board_info, depth):
         best_moves = []
         for move in legals:
             new_board_state, new_additional_board_info = main.execute_move(move, board_state, additional_board_info)
-            position_evaluation, inv = minimax('white', new_board_state, new_additional_board_info, depth)
+            position_evaluation, inv = minimax('white', new_board_state, new_additional_board_info, depth, best_eval)
             investigated_positions += inv
             if position_evaluation < best_eval:
                 best_eval = position_evaluation
