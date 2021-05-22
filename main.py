@@ -2,9 +2,9 @@ import pygame
 import numpy as np
 import cv2
 
-import random1
-import engine2
-import engine3
+import random
+import minimax
+import minimax_abp
 
 #F0D9B5; - 240, 217, 181
 #946f51; - 148, 111, 81
@@ -103,8 +103,11 @@ def get_move_from_gui(board_state, additional_board_info):
                 clicked_square = board_state[line][file]
                 if move_half_done == True:
                     assembled_move = first_half + num_address_to_letter((line, file))
+                    assembled_promotion_move = assembled_move + 'q'
                     if assembled_move in legals:
                         return assembled_move
+                    if assembled_promotion_move in legals:
+                        return assembled_promotion_move
                     elif (color == 'white' and clicked_square.isupper()) or (color == 'black' and clicked_square.islower()):
                         first_half = num_address_to_letter((line, file))
                         display_with_gui(board_state, selected_piece_position=[line, file], legal_moves=legals)
@@ -380,18 +383,24 @@ def legal_moves_pawn(position, board_state, additional_board_info):
     # capturing
     for dir in capture_directions:
         capture_square_position = [position[0] + dir[0], position[1] + dir[1]]
-        if 0 <= capture_square_position[0] < 8 and 0 <= capture_square_position[1] < 8 and \
-                board_state[capture_square_position[0]][capture_square_position[1]] != '' and \
-                board_state[capture_square_position[0]][capture_square_position[1]].isupper() != pawn.isupper():
+        if 0 <= capture_square_position[0] < 8 and 0 <= capture_square_position[1] < 8 and board_state[capture_square_position[0]][capture_square_position[1]] != '' and board_state[capture_square_position[0]][capture_square_position[1]].isupper() != pawn.isupper():
             move = num_address_to_letter(position) + num_address_to_letter(capture_square_position)
-            legals.append(move)
+            if capture_square_position[0] == 7 or capture_square_position[0] == 0:
+                legals += [move + 'q', move + 'r', move + 'n', move + 'b']
+            else:
+                legals.append(move)
+
     #moving forward
     forward_square_position = [position[0] + forward_direction[0], position[1] + forward_direction[1]]
     can_move_forward = False
     if 0 <= forward_square_position[0] < 8 and 0 <= forward_square_position[1] < 8 and board_state[forward_square_position[0]][forward_square_position[1]] == '':
         move = num_address_to_letter(position) + num_address_to_letter(forward_square_position)
-        legals.append(move)
         can_move_forward = True
+        #promote
+        if forward_square_position[0] == 7 or forward_square_position[0] == 0:
+            legals += [move + 'q', move + 'r', move + 'n', move + 'b']
+        else:
+            legals.append(move)
 
     #double move
     if can_move_forward:
@@ -501,13 +510,15 @@ def execute_move(move, board_state, additional_board_info):
 
         board_state[to[0]][to[1]] = moving_piece
         #promotion
-        if (to[0] == 0 or to[0] == 7):
+        if len(move) == 5:
             pawn_is_upper = moving_piece.isupper()
             while True:
-                replacing_piece = 'q'#input('Promote the pawn to: ')
+                replacing_piece = move[4]#input('Promote the pawn to: ')
                 if replacing_piece in ['r', 'n', 'b', 'q']:
                     if pawn_is_upper:
                         moving_piece = replacing_piece.upper()
+                    elif not pawn_is_upper:
+                        moving_piece = replacing_piece
                     break
                 else:
                     print('invalid piece code, try again!')
@@ -605,12 +616,12 @@ def main(board_state=None, additional_board_info=None):
             if WHITE == 0:
                 move = get_move_from_gui(board_state, additional_board_info)
             elif WHITE == 1:
-                move = random1.choose_move(board_state, additional_board_info)
+                move = random.choose_move(board_state, additional_board_info)
             elif WHITE == 2:
-                move, investigated_positions = engine2.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
+                move, investigated_positions = minimax.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
                 print("number of investigated positions:", investigated_positions)
             elif WHITE == 3:
-                move, investigated_positions = engine3.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
+                move, investigated_positions = minimax_abp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
                 print("number of investigated positions:", investigated_positions)
             board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
@@ -618,12 +629,12 @@ def main(board_state=None, additional_board_info=None):
             if BLACK == 0:
                 move = get_move_from_gui(board_state, additional_board_info)
             elif BLACK == 1:
-                move = random1.choose_move(board_state, additional_board_info)
+                move = random.choose_move(board_state, additional_board_info)
             elif BLACK == 2:
-                move, investigated_positions = engine2.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
+                move, investigated_positions = minimax.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
                 print("number of investigated positions:", investigated_positions)
             elif BLACK == 3:
-                move, investigated_positions = engine3.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
+                move, investigated_positions = minimax_abp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
                 print("number of investigated positions:", investigated_positions)
             board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
@@ -632,7 +643,7 @@ def main(board_state=None, additional_board_info=None):
         print('move:', move)
         print('additional board info', additional_board_info)
         print('checkmate:', checkmate)
-        print('engine 2 static eval:', round(engine2.static_evaluation(board_state), 3))
+        print('engine 2 static eval:', round(minimax.static_evaluation(board_state), 3))
         print("\n")
 
 
@@ -642,11 +653,11 @@ def main(board_state=None, additional_board_info=None):
 BOARD_FLIPPED = False
 
 WHITE = 0
-BLACK = 0
+BLACK = 3
 #0 = human player
-#1 = random moves
-#2 = bruteforce minimax algorithm
-#3 = minimax with pruning
+#1 = random moves - random.py
+#2 = bruteforce minimax algorithm - minimax.py
+#3 = minimax with alpha beta pruning - minimax_abp.py
 
 
 WHITE_DEPTH = 2
