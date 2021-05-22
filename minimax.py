@@ -40,7 +40,7 @@ def minimax(side_to_move, board_state, additional_board_info, depth):
     if depth == 0:
         return static_evaluation(board_state), 1
     else:
-        legals = main.legal_moves(side_to_move, board_state, additional_board_info)
+        legals = main.legal_moves(board_state, additional_board_info)
         investigated_positions = len(legals)
         if side_to_move == 'white':
             best_eval = -1000
@@ -64,7 +64,7 @@ def minimax(side_to_move, board_state, additional_board_info, depth):
 
 def find_best_move(board_state, additional_board_info, depth):
     side_to_move = additional_board_info[0]
-    legals = main.legal_moves(side_to_move, board_state, additional_board_info)
+    legals = main.legal_moves(board_state, additional_board_info)
     investigated_positions = len(legals)
     if len(legals) == 0:
         return None, 1

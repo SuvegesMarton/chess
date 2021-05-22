@@ -2,7 +2,7 @@ import pygame
 import numpy as np
 import cv2
 
-import random
+import randommove
 import minimax
 import minimax_abp
 
@@ -91,7 +91,7 @@ def uppercase_maker_for_setup(lowercase_list):
 
 def get_move_from_gui(board_state, additional_board_info):
     color = additional_board_info[0]
-    legals = legal_moves(color, board_state, additional_board_info)
+    legals = legal_moves(board_state, additional_board_info)
     move_half_done = False
     first_half = 0
     while True:
@@ -338,10 +338,9 @@ def find_square_by_number_address(addressY, addressX, board_state):
     return board_state[addressY][addressX]
 
 
-def is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=None):#square address input in letter format, does not work on attacker-color squares
+def is_square_attacked(square, board_state, additional_board_info, attacker_legal_moves=None):#square address input in letter format, does not work on attacker-color squares
     if attacker_legal_moves == None:
-        attacker_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_matters=False, check_castling=False)
-    counter = 0
+        attacker_legal_moves = legal_moves(board_state, additional_board_info, check_matters=False, check_castling=False)
     for move in attacker_legal_moves:
         if square == move[2:]:   #if attacker hits the square
             return True
@@ -432,13 +431,13 @@ def castling(board_state, side_to_move, additional_board_info):
 
     attacker_legal_moves = None
     if can_castle[1]:#long castling
-        attacker_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_castling=False, check_matters=False)
+        attacker_legal_moves = legal_moves(board_state, additional_board_info, check_castling=False, check_matters=False)
         squares_affected_by_king = ['c' + str(line_number), 'd' + str(line_number), 'e' + str(line_number)]
         squares_to_empty = ['b' + str(line_number), 'c' + str(line_number), 'd' + str(line_number)]
         none_under_attack = True
         all_empty = True
         for square in squares_affected_by_king:
-            if is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
+            if is_square_attacked(square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
                 none_under_attack = False
                 break
         for square in squares_to_empty:
@@ -449,13 +448,13 @@ def castling(board_state, side_to_move, additional_board_info):
             legal_castling_moves.append('e' + str(line_number) + 'a' + str(line_number))
     if can_castle[0]:#short castling
         if attacker_legal_moves == None:
-            attacker_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_castling=False, check_matters=False)
+            attacker_legal_moves = legal_moves(board_state, additional_board_info, check_castling=False, check_matters=False)
         squares_affected_by_king = ['e' + str(line_number), 'f' + str(line_number), 'g' + str(line_number)]
         squares_to_empty = ['f' + str(line_number), 'g' + str(line_number)]
         none_under_attack = True
         all_empty = True
         for square in squares_affected_by_king:
-            if is_square_attacked(attacker, square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
+            if is_square_attacked(square, board_state, additional_board_info, attacker_legal_moves=attacker_legal_moves):
                 none_under_attack = False
                 break
         for square in squares_to_empty:
@@ -535,7 +534,8 @@ def execute_move(move, board_state, additional_board_info):
     return board_state, modify_additional_board_info(move, additional_board_info)
 
 
-def legal_moves(color, board_state, additional_board_info, check_matters=True, check_castling=True):
+def legal_moves(board_state, additional_board_info, check_matters=True, check_castling=True):
+    color = additional_board_info[0]
     legal = []
     #find moves
     for row in range(len(board_state)):
@@ -564,24 +564,26 @@ def legal_moves(color, board_state, additional_board_info, check_matters=True, c
     if check_matters:
         no_check_moves = []
         for move in legal:
-            board_after_move, _ = execute_move(move, board_state, additional_board_info)
-            if color == 'black':
-                attacker = 'white'
-            else:
-                attacker = 'black'
-            if not is_check(attacker, board_after_move, additional_board_info):
+            board_after_move, additional_board_info_after_move = execute_move(move, board_state, additional_board_info)
+            if not is_check(board_after_move, [additional_board_info[0]] + additional_board_info_after_move[1:]):
                 no_check_moves.append(move)
         legal = no_check_moves
     return legal
 
 
-def is_check(attacker, board_state, additional_board_info):
+def is_check(board_state, additional_board_info):
+    additional_board_info = additional_board_info.copy()
+    if additional_board_info[0] == 'white':
+        attacker = 'black'
+    else:
+        attacker = 'white'
+    additional_board_info[0] = attacker
     king_position = [0, 0]
     for row in range(len(board_state)):
         for square in range(len(board_state[row])):
             if (board_state[row][square] == 'K' and attacker == 'black') or (board_state[row][square] == 'k' and attacker == 'white'):
                 king_position = [row, square]
-    attackers_legal_moves = legal_moves(attacker, board_state, additional_board_info, check_matters=False, check_castling=False)
+    attackers_legal_moves = legal_moves(board_state, additional_board_info, check_matters=False, check_castling=False)
     king_position_letter = num_address_to_letter(king_position)
     for move in attackers_legal_moves:
         if king_position_letter == move[2:]:   #if attacker hits the king's square
@@ -590,16 +592,12 @@ def is_check(attacker, board_state, additional_board_info):
 
 
 def is_checkmate(board_state, additional_board_info, surely_in_check=False):
-    attacked = additional_board_info[0]
-    if attacked == 'white':
-        attacker = 'black'
-    else:
-        attacker = 'white'
     if surely_in_check:
-        if len(legal_moves(attacked, board_state, additional_board_info)) == 0:
+        if len(legal_moves(board_state, additional_board_info)) == 0:
             return True
-    elif is_check(attacker, board_state, additional_board_info):
-        if len(legal_moves(attacked, board_state, additional_board_info)) == 0:
+    if is_check(board_state, additional_board_info):
+        print('in here')
+        if len(legal_moves(board_state, additional_board_info)) == 0:
             return True
     return False
 
@@ -616,32 +614,33 @@ def main(board_state=None, additional_board_info=None):
             if WHITE == 0:
                 move = get_move_from_gui(board_state, additional_board_info)
             elif WHITE == 1:
-                move = random.choose_move(board_state, additional_board_info)
+                move = randommove.choose_move(board_state, additional_board_info)
             elif WHITE == 2:
                 move, investigated_positions = minimax.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
                 print("number of investigated positions:", investigated_positions)
             elif WHITE == 3:
                 move, investigated_positions = minimax_abp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
                 print("number of investigated positions:", investigated_positions)
-            board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
         elif additional_board_info[0] == 'black':
             if BLACK == 0:
                 move = get_move_from_gui(board_state, additional_board_info)
             elif BLACK == 1:
-                move = random.choose_move(board_state, additional_board_info)
+                move = randommove.choose_move(board_state, additional_board_info)
             elif BLACK == 2:
                 move, investigated_positions = minimax.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
                 print("number of investigated positions:", investigated_positions)
             elif BLACK == 3:
                 move, investigated_positions = minimax_abp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
                 print("number of investigated positions:", investigated_positions)
-            board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
 
+        board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
         display_with_gui(board_state)
+        check = is_check(board_state, additional_board_info)
         checkmate = is_checkmate(board_state, additional_board_info)
         print('move:', move)
         print('additional board info', additional_board_info)
+        print('check:', check)
         print('checkmate:', checkmate)
         print('engine 2 static eval:', round(minimax.static_evaluation(board_state), 3))
         print("\n")
@@ -653,9 +652,9 @@ def main(board_state=None, additional_board_info=None):
 BOARD_FLIPPED = False
 
 WHITE = 0
-BLACK = 3
+BLACK = 0
 #0 = human player
-#1 = random moves - random.py
+#1 = random moves - randommove.py
 #2 = bruteforce minimax algorithm - minimax.py
 #3 = minimax with alpha beta pruning - minimax_abp.py
 
