@@ -6,6 +6,8 @@ import randommove
 import minimax
 import minimax_abp
 
+import pgn_interpreter
+
 #F0D9B5; - 240, 217, 181
 #946f51; - 148, 111, 81
 
@@ -646,11 +648,21 @@ def main(board_state=None, additional_board_info=None):
         print("\n")
 
 
+def display_game(moves, board_state=None, additional_board_info=None):
+    if board_state == None:
+        board_state = setup_board()
+    if additional_board_info == None:
+        additional_board_info = setup_additional_board_info()
+    display_with_gui(board_state)
+    for move in moves:
+        board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
+        display_with_gui(board_state)
+        clock.tick(1)
 
 
-
+GAMEMODE = 1
+#0 = live game, 1 = game replay from database
 BOARD_FLIPPED = False
-
 WHITE = 0
 BLACK = 0
 #0 = human player
@@ -671,5 +683,9 @@ if __name__ == "__main__":
         gameDisplay = pygame.display.set_mode((SQUARE_SIZE * 8, SQUARE_SIZE * 8))
         pygame.display.set_caption('Chess')
         clock = pygame.time.Clock()
-    board_state, additional_board_info = setup_by_FEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
-    main(board_state=board_state, additional_board_info=additional_board_info)
+    if GAMEMODE == 0:
+        board_state, additional_board_info = setup_by_FEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
+        main(board_state=board_state, additional_board_info=additional_board_info)
+    elif GAMEMODE == 1:
+        game_to_replay = pgn_interpreter.translate_pgn_move_chain_in_position(pgn_interpreter.load_pgn_file('pgn_database/Wei Yi.pgn')[0].moves)
+        display_game(game_to_replay)
