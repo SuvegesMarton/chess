@@ -1,4 +1,6 @@
 import pgn
+import os
+import csv
 
 import main
 
@@ -44,6 +46,7 @@ def translate_pgn_move_in_position(move, board_position, additional_board_info):
     moved_to_square = move[-2:]
     other_parts = move[:-2]
     legal_moves = main.legal_moves(board_position, additional_board_info)
+    #print(legal_moves)
     candidate_moves = []
     for legal in legal_moves:
         if moved_to_square == legal[2:4]:
@@ -51,22 +54,22 @@ def translate_pgn_move_in_position(move, board_position, additional_board_info):
     if len(candidate_moves) == 1:
         return candidate_moves[0] + promote_to
     else:
-        #clean other parts, x = captures, not important
+        # clean other parts, x = captures, not important
         if 'x' in other_parts:
             other_parts = other_parts[:-1]
 
         for i in other_parts:
             remaining_candidates = []
-            if i.isupper():#i means the moving piece's name
+            if i.isupper():  # i means the moving piece's name
                 for j in candidate_moves:
                     moving_piece = main.find_square_by_letter_address(j[:2], board_position)
                     if moving_piece == i or moving_piece == i.lower():
                         remaining_candidates.append(j)
-            elif i.islower():#i means the file where the piece has moved from
+            elif i.islower():  # i means the file where the piece has moved from
                 for j in candidate_moves:
                     if i == j[0]:
                         remaining_candidates.append(j)
-            elif i.isdigit():#i means the rank where the piece has moved from
+            elif i.isdigit():  # i means the rank where the piece has moved from
                 for j in candidate_moves:
                     if i == j[1]:
                         remaining_candidates.append(j)
@@ -82,36 +85,73 @@ def translate_pgn_move_in_position(move, board_position, additional_board_info):
 
 
 def translate_pgn_move_chain_in_position(moves, board_position=None, additional_board_info=None):
-    if board_position == None:
+    if board_position is None:
         board_position = main.setup_board()
-    if additional_board_info == None:
+    if additional_board_info is None:
         additional_board_info = main.setup_additional_board_info()
     translated_moves = []
-    if '-' in moves[-1] or '*' in moves[-1]:#if the last element is the result of the game
-        moves = moves[:-1]
+    while True:
+        if '-' in moves[-1] or '*' in moves[-1]:  # if the last element/elements are the result of the game
+            moves = moves[:-1]
+        else:
+            break
     for move in moves:
-        if '{' in moves or '(' in moves or '$' in moves:#annotated game
+        if '{' in move or '(' in move or '$' in move:  # annotated game
             return None
         translated_move = translate_pgn_move_in_position(move, board_position, additional_board_info)
+        #print(move, translated_move, board_position, additional_board_info)
         translated_moves.append(translated_move)
         board_position, additional_board_info = main.execute_move(translated_move, board_position, additional_board_info)
     return translated_moves
 
 
 def translate_one_file_of_games(path):
-    #file must be a pgn file
-    games = load_pgn_file(path)
-    counter = 0
+    # file must be a pgn file
+    games = load_pgn_file(path)[:10]
+    translated_games = [None] * len(games)
     for game in games:
-        print(counter)
-        print(game.moves)
+        print("original:", game.moves)
         translated = translate_pgn_move_chain_in_position(game.moves)
-        if translated != None:
-            print(translated)
-        else:
+        if translated is None:
             print('ugly annotated game detected')
-        counter += 1
+        else:
+            print("translated:", translated)
+        translated_games[games.index(game)] = translated
+    return translated_games
+
+
+def save_games_to_csv(translated_games, path):
+    with open(path, 'a', newline='') as file:
+        write = csv.writer(file)
+        write.writerows(translated_games)
+
+
+def search_logfile(logfile_path, searched_item):
+    with open(logfile_path, 'r') as logfile:
+        data = logfile.read()
+        if searched_item in data:
+            return True
+        else:
+            return False
+
+
+def append_logfile(logfile_path, new_item):
+    with open(logfile_path, 'a') as logfile:
+        logfile.write(new_item)
+        logfile.write("\n")
+
+
+def translate_all_pgn_to_csv_with_logging(pgns_folder_path, csv_path, logfile_path):
+    pgn_file_paths = os.listdir(pgns_folder_path)
+    for filepath in pgn_file_paths:
+        print("Translating", filepath)
+        if search_logfile(logfile_path, filepath):# pgn file has been already translated(listed in the logfile)
+            print("File", filepath, "has been already translated")
+            continue
+        translated_games = translate_one_file_of_games(pgns_folder_path + filepath)
+        save_games_to_csv(translated_games, csv_path)
+        append_logfile(logfile_path, filepath)
+        print("Translated file:", filepath)
+
 if __name__ == "__main__":
-    translate_one_file_of_games('pgn_database/Wei Yi.pgn')
-
-
+    translate_all_pgn_to_csv_with_logging('pgn_database/', 'csv_database.csv', 'csv_database_log.txt')

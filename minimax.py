@@ -80,7 +80,7 @@ def find_best_move(board_state, additional_board_info, depth):
                 best_moves = [move]
             elif position_evaluation == best_eval:
                 best_moves.append(move)
-        return choice(best_moves), investigated_positions
+        return choice(best_moves), investigated_positions, best_eval
     elif side_to_move == 'black':
         best_eval = 1000
         best_moves = []
@@ -94,4 +94,4 @@ def find_best_move(board_state, additional_board_info, depth):
             elif position_evaluation == best_eval:
                 best_moves.append(move)
             main.pygame.event.get()
-        return choice(best_moves), investigated_positions
+        return choice(best_moves), investigated_positions, best_eval

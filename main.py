@@ -413,10 +413,10 @@ def legal_moves_pawn(position, board_state, additional_board_info):
     #en passant
     en_passant_target_square = additional_board_info[5]
     if en_passant_target_square != None:
-        if num_address_to_letter([(position[0] + capture_directions[0][0]) % 7, (position[1] + capture_directions[0][1]) % 7]) == en_passant_target_square:
+        if num_address_to_letter([(position[0] + capture_directions[0][0]) % 8, (position[1] + capture_directions[0][1]) % 8]) == en_passant_target_square:
             legals.append(num_address_to_letter(position) + en_passant_target_square)
-        if num_address_to_letter([(position[0] + capture_directions[1][0]) % 7, (position[1] + capture_directions[1][1]) % 7]) == en_passant_target_square:
-                legals.append(num_address_to_letter(position) + en_passant_target_square)
+        if num_address_to_letter([(position[0] + capture_directions[1][0]) % 8, (position[1] + capture_directions[1][1]) % 8]) == en_passant_target_square:
+            legals.append(num_address_to_letter(position) + en_passant_target_square)
     return legals
 
 
@@ -618,11 +618,13 @@ def main(board_state=None, additional_board_info=None):
             elif WHITE == 1:
                 move = randommove.choose_move(board_state, additional_board_info)
             elif WHITE == 2:
-                move, investigated_positions = minimax.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
+                move, investigated_positions, dynamic_eval = minimax.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
                 print("number of investigated positions:", investigated_positions)
+                print('dynamic eval:', dynamic_eval)
             elif WHITE == 3:
-                move, investigated_positions = minimax_abp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
+                move, investigated_positions, dynamic_eval = minimax_abp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
                 print("number of investigated positions:", investigated_positions)
+                print('dynamic eval:', dynamic_eval)
 
         elif additional_board_info[0] == 'black':
             if BLACK == 0:
@@ -630,11 +632,13 @@ def main(board_state=None, additional_board_info=None):
             elif BLACK == 1:
                 move = randommove.choose_move(board_state, additional_board_info)
             elif BLACK == 2:
-                move, investigated_positions = minimax.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
+                move, investigated_positions, dynamic_eval = minimax.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
                 print("number of investigated positions:", investigated_positions)
+                print('dynamic eval:', dynamic_eval)
             elif BLACK == 3:
-                move, investigated_positions = minimax_abp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
+                move, investigated_positions, dynamic_eval = minimax_abp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
                 print("number of investigated positions:", investigated_positions)
+                print('dynamic eval:', dynamic_eval)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
         display_with_gui(board_state)
@@ -644,7 +648,7 @@ def main(board_state=None, additional_board_info=None):
         print('additional board info', additional_board_info)
         print('check:', check)
         print('checkmate:', checkmate)
-        print('engine 2 static eval:', round(minimax.static_evaluation(board_state), 3))
+        print('static eval:', round(minimax.static_evaluation(board_state), 3))
         print("\n")
 
 
@@ -660,7 +664,7 @@ def display_game(moves, board_state=None, additional_board_info=None):
         clock.tick(1)
 
 
-GAMEMODE = 1
+GAMEMODE = 0
 #0 = live game, 1 = game replay from database
 BOARD_FLIPPED = False
 WHITE = 0
