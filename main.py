@@ -515,7 +515,7 @@ def execute_move(move, board_state, additional_board_info):
             pawn_is_upper = moving_piece.isupper()
             while True:
                 replacing_piece = move[4]#input('Promote the pawn to: ')
-                if replacing_piece in ['r', 'n', 'b', 'q']:
+                if replacing_piece in ['r', 'n', 'b', 'q', 'R', 'N', 'B', 'Q']:
                     if pawn_is_upper:
                         moving_piece = replacing_piece.upper()
                     elif not pawn_is_upper:
@@ -668,7 +668,7 @@ GAMEMODE = 0
 #0 = live game, 1 = game replay from database
 BOARD_FLIPPED = False
 WHITE = 0
-BLACK = 0
+BLACK = 3
 #0 = human player
 #1 = random moves - randommove.py
 #2 = bruteforce minimax algorithm - minimax.py

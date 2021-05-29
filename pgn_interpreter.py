@@ -17,7 +17,7 @@ def translate_pgn_move_in_position(move, board_position, additional_board_info):
     side_to_move = additional_board_info[0]
     # clean move data
     # remove + and # -> meaning check and checkmate, not important
-    if '+' in move or '#' in move:
+    while move[-1] in ['+', '#', '!', '?']:
         move = move[:-1]
     # promotion
     promote_to = ''
@@ -27,6 +27,7 @@ def translate_pgn_move_in_position(move, board_position, additional_board_info):
         if side_to_move == 'black':
             promote_to = promote_to.lower()
         move = move[:-2]
+    #print('pt:', promote_to)
 
     # castling
     if 'O' in move:
@@ -81,7 +82,10 @@ def translate_pgn_move_in_position(move, board_position, additional_board_info):
         else:
             for candidate in candidate_moves:
                 if main.find_square_by_letter_address(candidate[:2], board_position) in ['p', 'P']:
-                    return candidate
+                    if len(candidate) == 4:
+                        return candidate
+                    else:
+                        return candidate[:4] + promote_to
 
 
 def translate_pgn_move_chain_in_position(moves, board_position=None, additional_board_info=None):
@@ -96,7 +100,7 @@ def translate_pgn_move_chain_in_position(moves, board_position=None, additional_
         else:
             break
     for move in moves:
-        if '{' in move or '(' in move or '$' in move:  # annotated game
+        if '{' in move or '(' in move or '$' in move or '!' in move:  # annotated game
             return None
         translated_move = translate_pgn_move_in_position(move, board_position, additional_board_info)
         #print(move, translated_move, board_position, additional_board_info)
@@ -107,13 +111,20 @@ def translate_pgn_move_chain_in_position(moves, board_position=None, additional_
 
 def translate_one_file_of_games(path):
     # file must be a pgn file
-    games = load_pgn_file(path)[:10]
+    games = load_pgn_file(path)
     translated_games = [None] * len(games)
+    counter = 1
     for game in games:
+        print('path:', path, 'game no.', counter)
+        counter += 1
         print("original:", game.moves)
+        if game.fen is not None: # odds game, not wtih basic setup
+            print('different starting position detected:', game.fen)
+            continue
         translated = translate_pgn_move_chain_in_position(game.moves)
         if translated is None:
             print('ugly annotated game detected')
+            continue
         else:
             print("translated:", translated)
         translated_games[games.index(game)] = translated
@@ -122,8 +133,11 @@ def translate_one_file_of_games(path):
 
 def save_games_to_csv(translated_games, path):
     with open(path, 'a', newline='') as file:
-        write = csv.writer(file)
-        write.writerows(translated_games)
+        writer = csv.writer(file)
+        print(translated_games)
+        for game in translated_games:
+            if game is not None:
+                writer.writerow(game)
 
 
 def search_logfile(logfile_path, searched_item):
@@ -143,15 +157,18 @@ def append_logfile(logfile_path, new_item):
 
 def translate_all_pgn_to_csv_with_logging(pgns_folder_path, csv_path, logfile_path):
     pgn_file_paths = os.listdir(pgns_folder_path)
+
     for filepath in pgn_file_paths:
+
         print("Translating", filepath)
-        if search_logfile(logfile_path, filepath):# pgn file has been already translated(listed in the logfile)
+        if search_logfile(logfile_path, filepath):  # pgn file has been already translated(listed in the logfile)
             print("File", filepath, "has been already translated")
             continue
         translated_games = translate_one_file_of_games(pgns_folder_path + filepath)
         save_games_to_csv(translated_games, csv_path)
         append_logfile(logfile_path, filepath)
         print("Translated file:", filepath)
+
 
 if __name__ == "__main__":
     translate_all_pgn_to_csv_with_logging('pgn_database/', 'csv_database.csv', 'csv_database_log.txt')
