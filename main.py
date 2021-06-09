@@ -6,6 +6,7 @@ import randommove
 import minimax
 import minimax_abp
 import db_random
+import db_mmabp
 
 import pgn_interpreter
 
@@ -421,8 +422,9 @@ def legal_moves_pawn(position, board_state, additional_board_info):
     return legals
 
 
-def castling(board_state, side_to_move, additional_board_info):
+def castling(board_state, additional_board_info):
     legal_castling_moves = []
+    side_to_move = additional_board_info[0]
     if side_to_move == 'white':
         can_castle = additional_board_info[1:3]
         attacker = 'black'
@@ -432,9 +434,11 @@ def castling(board_state, side_to_move, additional_board_info):
         attacker = 'white'
         line_number = 8
 
+    modified_additional_board_info = [attacker] + additional_board_info[0:]
+
     attacker_legal_moves = None
     if can_castle[1]:#long castling
-        attacker_legal_moves = legal_moves(board_state, additional_board_info, check_castling=False, check_matters=False)
+        attacker_legal_moves = legal_moves(board_state, modified_additional_board_info, check_castling=False, check_matters=False)
         squares_affected_by_king = ['c' + str(line_number), 'd' + str(line_number), 'e' + str(line_number)]
         squares_to_empty = ['b' + str(line_number), 'c' + str(line_number), 'd' + str(line_number)]
         none_under_attack = True
@@ -451,7 +455,7 @@ def castling(board_state, side_to_move, additional_board_info):
             legal_castling_moves.append('e' + str(line_number) + 'a' + str(line_number))
     if can_castle[0]:#short castling
         if attacker_legal_moves == None:
-            attacker_legal_moves = legal_moves(board_state, additional_board_info, check_castling=False, check_matters=False)
+            attacker_legal_moves = legal_moves(board_state, modified_additional_board_info, check_castling=False, check_matters=False)
         squares_affected_by_king = ['e' + str(line_number), 'f' + str(line_number), 'g' + str(line_number)]
         squares_to_empty = ['f' + str(line_number), 'g' + str(line_number)]
         none_under_attack = True
@@ -562,7 +566,7 @@ def legal_moves(board_state, additional_board_info, check_matters=True, check_ca
                 if square == 'k':
                     legal += legal_moves_all_direction_pieces(ROOK_DIRECTIONS + BISHOP_DIRECTIONS, 1, position, board_state)
                     if check_castling:
-                        legal += castling(board_state, color, additional_board_info)
+                        legal += castling(board_state, additional_board_info)
     #delete moves when the king is in check
     if check_matters:
         no_check_moves = []
@@ -612,10 +616,11 @@ def main(board_state=None, additional_board_info=None):
         additional_board_info = setup_additional_board_info()
 
     # if any of the player uses a database, load it
-    enginges_using_database = [4]
-    database_handler = None
-    if WHITE in enginges_using_database or BLACK in enginges_using_database:
-        database_handler = db_random.DatabaseHandler('./csv_database.csv')
+    if WHITE == 4 or BLACK == 4:
+        db_random_handler = db_random.DatabaseHandler('./csv_database.csv')
+    if WHITE == 5 or BLACK == 5:
+        db_mmabp_handler = db_mmabp.DatabaseHandler('./csv_database.csv')
+
 
     moves_played = []
 
@@ -638,7 +643,11 @@ def main(board_state=None, additional_board_info=None):
                 print("number of investigated positions:", investigated_positions)
                 print('dynamic eval:', dynamic_eval)
             elif WHITE == 4:
-                move, db_size_before_move, db_size_after_move = database_handler.find_move(moves_played, board_state, additional_board_info)
+                move, db_size_before_move, db_size_after_move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info)
+                print('number of games in the database before this move:', db_size_before_move)
+                print('number of games in the database after this move:', db_size_after_move)
+            elif WHITE == 5:
+                move, db_size_before_move, db_size_after_move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, WHITE_DEPTH)
                 print('number of games in the database before this move:', db_size_before_move)
                 print('number of games in the database after this move:', db_size_after_move)
 
@@ -656,7 +665,11 @@ def main(board_state=None, additional_board_info=None):
                 print("number of investigated positions:", investigated_positions)
                 print('dynamic eval:', dynamic_eval)
             elif BLACK == 4:
-                move, db_size_before_move, db_size_after_move = database_handler.find_move(moves_played, board_state, additional_board_info)
+                move, db_size_before_move, db_size_after_move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info)
+                print('number of games in the database before this move:', db_size_before_move)
+                print('number of games in the database after this move:', db_size_after_move)
+            elif BLACK == 5:
+                move, db_size_before_move, db_size_after_move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH)
                 print('number of games in the database before this move:', db_size_before_move)
                 print('number of games in the database after this move:', db_size_after_move)
 
@@ -688,20 +701,24 @@ def display_game(moves, board_state=None, additional_board_info=None):
 
 
 GAMEMODE = 0
-#0 = live game, 1 = game replay from database
+
+# 0 = live game, 1 = game replay from database
+
 BOARD_FLIPPED = False
 WHITE = 0
-BLACK = 4
-#0 = human player
-#1 = random moves - randommove.py
-#2 = bruteforce minimax algorithm - minimax.py
-#3 = minimax with alpha beta pruning - minimax_abp.py
-#4 = database first, then random moves - db_random.py
+BLACK = 0
+
+# 0 = human player
+# 1 = random moves - randommove.py
+# 2 = bruteforce minimax algorithm - minimax.py
+# 3 = minimax with alpha beta pruning - minimax_abp.py
+# 4 = database first, then random moves - db_random.py
+# 5 = database first, then minimax with alpha beta pruning - db_mmabp.py
 
 
 WHITE_DEPTH = 2
 BLACK_DEPTH = 2
-#depth matters only if the player is engine
+# depth matters only if the player is engine
 
 if __name__ == "__main__":
     WITH_GUI = True

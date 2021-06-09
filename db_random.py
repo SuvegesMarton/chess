@@ -3,6 +3,13 @@ import main
 import random
 
 
+def find_random_move(self, board_state, additional_board_info):
+    legals = main.legal_moves(board_state, additional_board_info)
+    if len(legals) == 0:
+        return None
+    else:
+        return random.choice(legals)
+
 class DatabaseHandler:
     def __init__(self, database_path):
         # load data from csv file
@@ -22,7 +29,7 @@ class DatabaseHandler:
                     counter += 1
         return new_db[:counter]
 
-    def find_move(self, moves_played, board_state, additional_board_info):
+    def find_move_with_database(self, moves_played, board_state, additional_board_info):
         if self.in_database:
             db_before = len(self.database)
             # compare up own played moves with input played moves.
@@ -39,18 +46,14 @@ class DatabaseHandler:
                     self.database = self.shrink_database(self.database, new_moves[i], len(self.moves_played) + i)
                 if len(self.database) == 0:
                     self.in_database = False
-                    return random.choice(main.legal_moves(board_state, additional_board_info)), db_before, 0
+                    return find_random_move(board_state, additional_board_info), db_before, 0
                 chosen_game = random.choice(self.database)
                 if len(chosen_game) > len(moves_played):
                     return chosen_game[len(moves_played)], db_before, len(self.database)
                 else:
-                    return random.choice(main.legal_moves(board_state, additional_board_info)), db_before, 0
+                    return find_random_move(board_state, additional_board_info), db_before, 0
 
             else:
                 print('no match')
         else:
-            legals = main.legal_moves(board_state, additional_board_info)
-            if len(legals) == 0:
-                return None, 0, 0
-            else:
-                return random.choice(legals), 0, 0
+            return find_random_move(board_state, additional_board_info), 0, 0
