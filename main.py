@@ -5,6 +5,7 @@ import cv2
 import randommove
 import minimax
 import minimax_abp
+import db_random
 
 import pgn_interpreter
 
@@ -598,18 +599,29 @@ def is_checkmate(board_state, additional_board_info, surely_in_check=False):
         if len(legal_moves(board_state, additional_board_info)) == 0:
             return True
     if is_check(board_state, additional_board_info):
-        print('in here')
         if len(legal_moves(board_state, additional_board_info)) == 0:
             return True
     return False
 
 
 def main(board_state=None, additional_board_info=None):
+    # set basics if there is no specific position given
     if board_state == None:
         board_state = setup_board()
     if additional_board_info == None:
         additional_board_info = setup_additional_board_info()
+
+    # if any of the player uses a database, load it
+    enginges_using_database = [4]
+    database_handler = None
+    if WHITE in enginges_using_database or BLACK in enginges_using_database:
+        database_handler = db_random.DatabaseHandler('./csv_database.csv')
+
+    moves_played = []
+
     display_with_gui(board_state)
+
+
     move = None
     while True:
         if additional_board_info[0] == 'white':
@@ -625,6 +637,10 @@ def main(board_state=None, additional_board_info=None):
                 move, investigated_positions, dynamic_eval = minimax_abp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
                 print("number of investigated positions:", investigated_positions)
                 print('dynamic eval:', dynamic_eval)
+            elif WHITE == 4:
+                move, db_size_before_move, db_size_after_move = database_handler.find_move(moves_played, board_state, additional_board_info)
+                print('number of games in the database before this move:', db_size_before_move)
+                print('number of games in the database after this move:', db_size_after_move)
 
         elif additional_board_info[0] == 'black':
             if BLACK == 0:
@@ -639,8 +655,13 @@ def main(board_state=None, additional_board_info=None):
                 move, investigated_positions, dynamic_eval = minimax_abp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
                 print("number of investigated positions:", investigated_positions)
                 print('dynamic eval:', dynamic_eval)
+            elif BLACK == 4:
+                move, db_size_before_move, db_size_after_move = database_handler.find_move(moves_played, board_state, additional_board_info)
+                print('number of games in the database before this move:', db_size_before_move)
+                print('number of games in the database after this move:', db_size_after_move)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
+        moves_played.append(move)
         display_with_gui(board_state)
         check = is_check(board_state, additional_board_info)
         checkmate = is_checkmate(board_state, additional_board_info)
@@ -650,6 +671,8 @@ def main(board_state=None, additional_board_info=None):
         print('checkmate:', checkmate)
         print('static eval:', round(minimax.static_evaluation(board_state), 3))
         print("\n")
+        if checkmate:
+            break
 
 
 def display_game(moves, board_state=None, additional_board_info=None):
@@ -668,11 +691,12 @@ GAMEMODE = 0
 #0 = live game, 1 = game replay from database
 BOARD_FLIPPED = False
 WHITE = 0
-BLACK = 3
+BLACK = 4
 #0 = human player
 #1 = random moves - randommove.py
 #2 = bruteforce minimax algorithm - minimax.py
 #3 = minimax with alpha beta pruning - minimax_abp.py
+#4 = database first, then random moves - db_random.py
 
 
 WHITE_DEPTH = 2

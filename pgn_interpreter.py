@@ -86,6 +86,7 @@ def translate_pgn_move_in_position(move, board_position, additional_board_info):
                         return candidate
                     else:
                         return candidate[:4] + promote_to
+        return candidate_moves[0] + promote_to
 
 
 def translate_pgn_move_chain_in_position(moves, board_position=None, additional_board_info=None):
@@ -95,6 +96,8 @@ def translate_pgn_move_chain_in_position(moves, board_position=None, additional_
         additional_board_info = main.setup_additional_board_info()
     translated_moves = []
     while True:
+        if len(moves) == 0:
+            return None
         if '-' in moves[-1] or '*' in moves[-1]:  # if the last element/elements are the result of the game
             moves = moves[:-1]
         else:
@@ -102,6 +105,7 @@ def translate_pgn_move_chain_in_position(moves, board_position=None, additional_
     for move in moves:
         if '{' in move or '(' in move or '$' in move or '!' in move:  # annotated game
             return None
+    for move in moves:
         translated_move = translate_pgn_move_in_position(move, board_position, additional_board_info)
         #print(move, translated_move, board_position, additional_board_info)
         translated_moves.append(translated_move)
@@ -114,8 +118,9 @@ def translate_one_file_of_games(path):
     games = load_pgn_file(path)
     translated_games = [None] * len(games)
     counter = 1
+    n = len(games)
     for game in games:
-        print('path:', path, 'game no.', counter)
+        print('path:', path, 'game no.', counter, '/', n)
         counter += 1
         print("original:", game.moves)
         if game.fen is not None: # odds game, not wtih basic setup
@@ -134,7 +139,6 @@ def translate_one_file_of_games(path):
 def save_games_to_csv(translated_games, path):
     with open(path, 'a', newline='') as file:
         writer = csv.writer(file)
-        print(translated_games)
         for game in translated_games:
             if game is not None:
                 writer.writerow(game)
