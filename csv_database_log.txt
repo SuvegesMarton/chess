@@ -1,0 +1,59 @@
+Adolf Anderssen.pgn
+Alexander Alekhine.pgn
+Alexander Grischuk.pgn
+Alexander Morozevich.pgn
+Alexandra Kosteniuk.pgn
+Alexey Shirov.pgn
+Anatoly Karpov.pgn
+Anish Giri.pgn
+Bobby Fischer.pgn
+Boris Gelfand.pgn
+Deep Blue vs Kasparov 1996 (Game 1).pgn
+Deep Fritz - Kramnik (Game 2).pgn
+Deep Thought.pgn
+Ding Liren.pgn
+Dortmund Chess.pgn
+Emanuel Lasker.pgn
+Fabiano Caruana.pgn
+Frank Marshall.pgn
+Game of the Century.pgn
+Garry Kasparov.pgn
+Gata Kamsky.pgn
+Hikaru Nakamura.pgn
+Hou Yifan.pgn
+Johannes Zukertort.pgn
+Jose Raul Capablanca.pgn
+Ju Wenjun.pgn
+Judit Polgar.pgn
+Kasparov vs the World.pgn
+Levon Aronian.pgn
+Loek van Wely.pgn
+Magnus Carlsen.pgn
+Maxime Vachier-Lagrave.pgn
+Michael Adams.pgn
+Mikhail Tal.pgn
+Nigel Short.pgn
+Paul Keres.pgn
+Paul Morphy.pgn
+Peter Leko.pgn
+Peter Svidler.pgn
+Richard Rapport.pgn
+Samuel Reshevsky.pgn
+Samuel Shankland.pgn
+Sergey Karjakin.pgn
+Shakhriyar Mamedyarov.pgn
+Stockfish.pgn
+Tata Chess.pgn
+Teimour Radjabov.pgn
+Tigran Petrosian.pgn
+Vasily Smyslov.pgn
+Vassily Ivanchuk.pgn
+Veselin Topalov.pgn
+Viktor Korchnoi.pgn
+Viswanathan Anand.pgn
+Vladimir Kramnik.pgn
+Wang Hao.pgn
+Wei Yi.pgn
+Wesley So.pgn
+World Championship.pgn
+Yu Yangyi.pgn

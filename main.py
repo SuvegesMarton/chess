@@ -616,6 +616,7 @@ def main(board_state=None, additional_board_info=None):
         additional_board_info = setup_additional_board_info()
 
     # if any of the player uses a database, load it
+    db_random_handler, db_mmabp_handler = None, None
     if WHITE == 4 or BLACK == 4:
         db_random_handler = db_random.DatabaseHandler('./csv_database.csv')
     if WHITE == 5 or BLACK == 5:
@@ -643,13 +644,11 @@ def main(board_state=None, additional_board_info=None):
                 print("number of investigated positions:", investigated_positions)
                 print('dynamic eval:', dynamic_eval)
             elif WHITE == 4:
-                move, db_size_before_move, db_size_after_move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info)
-                print('number of games in the database before this move:', db_size_before_move)
-                print('number of games in the database after this move:', db_size_after_move)
+                move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info, True)
+
             elif WHITE == 5:
-                move, db_size_before_move, db_size_after_move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, WHITE_DEPTH)
-                print('number of games in the database before this move:', db_size_before_move)
-                print('number of games in the database after this move:', db_size_after_move)
+                move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, WHITE_DEPTH, True)
+
 
         elif additional_board_info[0] == 'black':
             if BLACK == 0:
@@ -665,13 +664,10 @@ def main(board_state=None, additional_board_info=None):
                 print("number of investigated positions:", investigated_positions)
                 print('dynamic eval:', dynamic_eval)
             elif BLACK == 4:
-                move, db_size_before_move, db_size_after_move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info)
-                print('number of games in the database before this move:', db_size_before_move)
-                print('number of games in the database after this move:', db_size_after_move)
+                move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info, True)
+
             elif BLACK == 5:
-                move, db_size_before_move, db_size_after_move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH)
-                print('number of games in the database before this move:', db_size_before_move)
-                print('number of games in the database after this move:', db_size_after_move)
+                move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH, True)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
         moves_played.append(move)
@@ -705,8 +701,8 @@ GAMEMODE = 0
 # 0 = live game, 1 = game replay from database
 
 BOARD_FLIPPED = False
-WHITE = 0
-BLACK = 0
+WHITE = 5
+BLACK = 4
 
 # 0 = human player
 # 1 = random moves - randommove.py

@@ -1,14 +1,13 @@
 import csv
 import main
-import random
+from random import choice
 
-
-def find_random_move(self, board_state, additional_board_info):
+def find_random_move(board_state, additional_board_info):
     legals = main.legal_moves(board_state, additional_board_info)
     if len(legals) == 0:
         return None
     else:
-        return random.choice(legals)
+        return choice(legals)
 
 class DatabaseHandler:
     def __init__(self, database_path):
@@ -17,43 +16,40 @@ class DatabaseHandler:
         self.moves_played = []
         self.in_database = True
 
-
-    def shrink_database(self, db, new_move, move_id):
-        db_size = len(db)
-        new_db = [None] * db_size
-        counter = 0
-        for i in range(db_size):
-            if len(db[i]) > move_id:
-                if db[i][move_id] == new_move:
-                    new_db[counter] = db[i]
-                    counter += 1
-        return new_db[:counter]
-
-    def find_move_with_database(self, moves_played, board_state, additional_board_info):
+    def find_move_with_database(self, moves_played, board_state, additional_board_info, display_infos):
+        relevant_games = []
         if self.in_database:
-            db_before = len(self.database)
-            # compare up own played moves with input played moves.
-            # if they match continue with shrinking the database, otherways start over
-            match = True
-            for i in range(len(self.moves_played)):
-                if not self.moves_played[i] == moves_played[i]:
-                    match = False
-                    break
-            if match:
-                length_difference = len(moves_played) - len(self.moves_played)
-                new_moves = moves_played[-length_difference:]
-                for i in range(len(new_moves)):
-                    self.database = self.shrink_database(self.database, new_moves[i], len(self.moves_played) + i)
-                if len(self.database) == 0:
-                    self.in_database = False
-                    return find_random_move(board_state, additional_board_info), db_before, 0
-                chosen_game = random.choice(self.database)
-                if len(chosen_game) > len(moves_played):
-                    return chosen_game[len(moves_played)], db_before, len(self.database)
-                else:
-                    return find_random_move(board_state, additional_board_info), db_before, 0
+            for game in self.database:
+                if game[:len(moves_played)] == moves_played and len(game) > len(moves_played):
+                    relevant_games.append(game)
 
-            else:
-                print('no match')
+        if len(relevant_games) > 0:
+            self.database = relevant_games
+            if display_infos:
+                self.display_database(len(moves_played))
+            print('Size of database at this position:', len(relevant_games))
+            return choice(relevant_games)[len(moves_played)]
         else:
-            return find_random_move(board_state, additional_board_info), 0, 0
+            if display_infos:
+                print('Out of database.')
+            self.in_database = False
+            return choice(main.legal_moves(board_state, additional_board_info))
+
+
+
+    def display_database(self, depth):
+        if self.in_database:
+            moves = []
+            occurence = []
+            for i in self.database:
+                if len(i) > depth:
+                    new_move = i[depth]
+                    if new_move in moves:
+                        occurence[moves.index(new_move)] += 1
+                    else:
+                        moves.append(new_move)
+                        occurence.append(1)
+            print(moves)
+            print(occurence)
+        else:
+            print('Out of database.')
