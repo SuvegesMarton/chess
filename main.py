@@ -29,19 +29,19 @@ def setup_board():
     #lower case means black pieces, upper case means white pieces
     pawns = ['p' for _ in range(8)]
     pieces = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
-    if BOARD_FLIPPED == False:
-        board = [pieces, pawns]
-        board += [['' for _ in range(8)] for _ in range(4)]
-        board.append(uppercase_maker_for_setup(pawns))
-        board.append(uppercase_maker_for_setup(pieces))
-        return board
-    if BOARD_FLIPPED == True:
-        pieces.reverse()
-        board = [uppercase_maker_for_setup(pieces), uppercase_maker_for_setup(pawns)]
-        board += [['' for _ in range(8)] for _ in range(4)]
-        board.append(pawns)
-        board.append(pieces)
-        return board
+    board = [pieces, pawns]
+    board += [['' for _ in range(8)] for _ in range(4)]
+    board.append(uppercase_maker_for_setup(pawns))
+    board.append(uppercase_maker_for_setup(pieces))
+    return board
+
+
+def flip_board(board_state):
+    print('board flipped')
+    board_state.reverse()
+    for line in board_state:
+        line.reverse()
+    return board_state
 
 
 def setup_additional_board_info():
@@ -62,10 +62,6 @@ def setup_by_FEN(fen):
             else:
                 new_line += ['' for _ in range(int(char))]
         board_setup.append(new_line)
-    if BOARD_FLIPPED:
-        board_setup.reverse()
-        for i in range(len(board_setup)):
-            board_setup[i].reverse()
     #additional info setup
         #side to move
     if fen_chunks[1] == 'w':
@@ -86,6 +82,10 @@ def setup_by_FEN(fen):
     return board_setup, additional_board_info
 
 
+def FEN_by_setup(board_state, additional_board_info):
+    pass
+
+
 def uppercase_maker_for_setup(lowercase_list):
     uppercase_list = []
     for i in lowercase_list:
@@ -104,6 +104,9 @@ def get_move_from_gui(board_state, additional_board_info):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 line, file = pos[1] // SQUARE_SIZE, pos[0] // SQUARE_SIZE
+                if BOARD_FLIPPED:
+                    line = 7 - line
+                    file = 7 - file
                 clicked_square = board_state[line][file]
                 if move_half_done == True:
                     assembled_move = first_half + num_address_to_letter((line, file))
@@ -244,7 +247,7 @@ def img_format_name_from_square(square):
     return piece_color + piece_name
 
 
-def display_board(board):
+def display_board_in_shell(board):
     for row in board:
         for square in row:
             print(square + ', ', end='')
@@ -256,8 +259,12 @@ def display_with_gui(board, selected_piece_position=None, legal_moves=None):
     start_color = 1   #even = dark, odd = light
     if selected_piece_position != None:
         square_animation_map = create_square_animation_map(selected_piece_position, board, legal_moves)
+        if BOARD_FLIPPED:
+            square_animation_map = flip_board(square_animation_map)
     else:
         square_animation_map = [[0 for i in range(8)] for i in range(8)]
+    if BOARD_FLIPPED:
+        board = flip_board(copy_2d_list(board))
     for i, row in enumerate(board):
         x = 0
         square_color = start_color
@@ -285,13 +292,11 @@ def num_address_to_letter(address):
     return str(str(lett) + str(num))
 
 
-def letter_address_to_num( address):
+def letter_address_to_num(address):
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     column = letters.index(address[0])
-    if not BOARD_FLIPPED:
-        row = 8 - int(address[1])
-    else:
-        row = 8 - int(address[1])
+    row = 8 - int(address[1])
+    if BOARD_FLIPPED:
         column = 7 - column
         row = 7 - row
     return row, column
@@ -300,13 +305,6 @@ def letter_address_to_num( address):
 def find_square_by_letter_address(address, board_state):
     row, column = letter_address_to_num(address)
     return board_state[row][column]
-
-
-def find_square_by_piece(piece, board_state):
-    for i, row in enumerate(board_state):
-        if piece in row:
-            return [i, row.index(piece)]
-    return None
 
 
 def modify_additional_board_info(move, additional_board_info, change_side_to_move=True):
@@ -376,7 +374,7 @@ def legal_moves_all_direction_pieces(directions, range, position, board_state):
 def legal_moves_pawn(position, board_state, additional_board_info):
     legals = []
     pawn = board_state[position[0]][position[1]]
-    if (BOARD_FLIPPED == False and pawn.islower()) or (BOARD_FLIPPED == True and pawn.isupper()):
+    if pawn.islower():
         forward_direction = [1, 0]
         capture_directions = [[1, 1], [1, -1]]
     else:
@@ -409,7 +407,7 @@ def legal_moves_pawn(position, board_state, additional_board_info):
     if can_move_forward:
         double_forward_square_position = [forward_square_position[0] + forward_direction[0], forward_square_position[1] + forward_direction[1]]
         if 0 <= double_forward_square_position[0] < 8 and 0 <= double_forward_square_position[1] < 8 and board_state[double_forward_square_position[0]][double_forward_square_position[1]] == '':
-            if position[0] == 6 and ((pawn.isupper() and not BOARD_FLIPPED) or (pawn.islower() and BOARD_FLIPPED)) or position[0] == 1 and ((pawn.islower() and not BOARD_FLIPPED) or (pawn.isupper() and BOARD_FLIPPED)):
+            if (position[0] == 6 and pawn.isupper()) or (position[0] == 1 and pawn.islower()):
                 move = num_address_to_letter(position) + num_address_to_letter(double_forward_square_position)
                 legals.append(move)
     #en passant
@@ -670,6 +668,7 @@ def main(board_state=None, additional_board_info=None):
                 move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH, True)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
+        print(board_state)
         moves_played.append(move)
         display_with_gui(board_state)
         check = is_check(board_state, additional_board_info)
@@ -700,9 +699,10 @@ GAMEMODE = 0
 
 # 0 = live game, 1 = game replay from database
 
-BOARD_FLIPPED = False
-WHITE = 5
-BLACK = 4
+BOARD_FLIPPED = True
+
+WHITE = 0
+BLACK = 0
 
 # 0 = human player
 # 1 = random moves - randommove.py
