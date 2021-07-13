@@ -37,7 +37,6 @@ def setup_board():
 
 
 def flip_board(board_state):
-    print('board flipped')
     board_state.reverse()
     for line in board_state:
         line.reverse()
@@ -79,11 +78,59 @@ def setup_by_FEN(fen):
         additional_board_info.append(fen_chunks[3])
     else:
         additional_board_info.append(None)
+        #halfmove clock
+    additional_board_info.append(fen_chunks[4])
+        #full move counter
+    additional_board_info.append(fen_chunks[5])
+
     return board_setup, additional_board_info
 
 
 def FEN_by_setup(board_state, additional_board_info):
-    pass
+    full_fen = ''
+    #board state
+    board_string = ''
+    for line in board_state:
+        line_string = ''
+        empty_counter = 0
+        for square in line:
+            if square == '':
+                empty_counter += 1
+            else:
+                if empty_counter != 0:
+                    line_string += str(empty_counter)
+                    empty_counter = 0
+                line_string += square
+        if empty_counter != 0:
+            line_string += str(empty_counter)
+        board_string += line_string + '/'
+    full_fen += board_string[:-1]
+    #side to move
+    if additional_board_info[0] == 'white':
+        full_fen += ' w '
+    else:
+        full_fen += ' b '
+    #castling ability
+    if additional_board_info[1]:
+        full_fen += 'K'
+    if additional_board_info[2]:
+        full_fen += 'Q'
+    if additional_board_info[3]:
+        full_fen += 'k'
+    if additional_board_info[4]:
+        full_fen += 'q'
+    #en passant target square
+    if additional_board_info[5] is None:
+        full_fen += ' -'
+    else:
+        full_fen += ' ' + additional_board_info[5]
+    #halfmove clock(50 moves rule)
+    full_fen += ' ' + str(additional_board_info[6])
+    #full move counter
+    full_fen += ' ' + str(additional_board_info[7])
+
+
+    return full_fen
 
 
 def uppercase_maker_for_setup(lowercase_list):
@@ -281,14 +328,9 @@ def display_with_gui(board, selected_piece_position=None, legal_moves=None):
 
 def num_address_to_letter(address):
     #input: 0-7
-    if not BOARD_FLIPPED:
-        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        num = 8 - address[0]
-        lett = letters[address[1]]
-    else:
-        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-        num = 8 - (7 - address[0])
-        lett = letters[(7 - address[1])]
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    num = 8 - address[0]
+    lett = letters[address[1]]
     return str(str(lett) + str(num))
 
 
@@ -296,9 +338,6 @@ def letter_address_to_num(address):
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     column = letters.index(address[0])
     row = 8 - int(address[1])
-    if BOARD_FLIPPED:
-        column = 7 - column
-        row = 7 - row
     return row, column
 
 
@@ -623,6 +662,7 @@ def main(board_state=None, additional_board_info=None):
 
     moves_played = []
 
+
     display_with_gui(board_state)
 
 
@@ -668,13 +708,13 @@ def main(board_state=None, additional_board_info=None):
                 move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH, True)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
-        print(board_state)
         moves_played.append(move)
         display_with_gui(board_state)
         check = is_check(board_state, additional_board_info)
         checkmate = is_checkmate(board_state, additional_board_info)
+        fen = FEN_by_setup(board_state, additional_board_info)
         print('move:', move)
-        print('additional board info', additional_board_info)
+        print('position FEN:', fen)
         print('check:', check)
         print('checkmate:', checkmate)
         print('static eval:', round(minimax.static_evaluation(board_state), 3))
@@ -701,8 +741,8 @@ GAMEMODE = 0
 
 BOARD_FLIPPED = True
 
-WHITE = 0
-BLACK = 0
+WHITE = 3
+BLACK = 5
 
 # 0 = human player
 # 1 = random moves - randommove.py

@@ -126,7 +126,7 @@ class DatabaseHandler:
             if display_infos:
                 print('Out of database.')
             self.in_database = False
-            move, investigated_positions, best_eval = find_best_move_with_minimax(board_state, additional_board_info, depth)[0]
+            move, investigated_positions, best_eval = find_best_move_with_minimax(board_state, additional_board_info, depth)
             print("number of investigated positions:", investigated_positions)
             print('dynamic eval:', best_eval)
             return move
