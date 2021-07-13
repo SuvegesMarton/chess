@@ -7,6 +7,7 @@ import minimax
 import minimax_abp
 import db_random
 import db_mmabp
+import pdb_random
 
 import pgn_interpreter
 
@@ -658,6 +659,8 @@ def main(board_state=None, additional_board_info=None):
         db_random_handler = db_random.DatabaseHandler('./csv_database.csv')
     if WHITE == 5 or BLACK == 5:
         db_mmabp_handler = db_mmabp.DatabaseHandler('./csv_database.csv')
+    if WHITE == 6 or BLACK == 6:
+        pdb_random.load_database('./position_database.csv')
 
 
     moves_played = []
@@ -683,9 +686,10 @@ def main(board_state=None, additional_board_info=None):
                 print('dynamic eval:', dynamic_eval)
             elif WHITE == 4:
                 move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info, True)
-
             elif WHITE == 5:
                 move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, WHITE_DEPTH, True)
+            elif WHITE == 6:
+                move = pdb_random.find_best_move(board_state, additional_board_info)
 
 
         elif additional_board_info[0] == 'black':
@@ -703,9 +707,10 @@ def main(board_state=None, additional_board_info=None):
                 print('dynamic eval:', dynamic_eval)
             elif BLACK == 4:
                 move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info, True)
-
             elif BLACK == 5:
                 move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH, True)
+            elif BLACK == 6:
+                move = pdb_random.find_best_move(board_state, additional_board_info)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
         moves_played.append(move)
@@ -739,10 +744,10 @@ GAMEMODE = 0
 
 # 0 = live game, 1 = game replay from database
 
-BOARD_FLIPPED = True
+BOARD_FLIPPED = False
 
-WHITE = 3
-BLACK = 5
+WHITE = 6
+BLACK = 0
 
 # 0 = human player
 # 1 = random moves - randommove.py
@@ -750,6 +755,7 @@ BLACK = 5
 # 3 = minimax with alpha beta pruning - minimax_abp.py
 # 4 = database first, then random moves - db_random.py
 # 5 = database first, then minimax with alpha beta pruning - db_mmabp.py
+# 6 = positional database first, then random moves - pdb_random.py
 
 
 WHITE_DEPTH = 2

@@ -1,5 +1,5 @@
 import csv
-import main
+from main import setup_by_FEN, FEN_by_setup, execute_move
 
 def is_same_FEN(fen1, fen2, board_state_match=True, sides_to_move_match=True, castling_abilities_match=False, en_passant_targets_match=False, halfmove_clock_match=False, move_number_match=False):
     fen1chunks = fen1.split(' ')
@@ -32,7 +32,7 @@ def load_games(database_path):
 def extract_data_from_game(game):
     db = []
     fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-    board_position, additional_board_info = main.setup_by_FEN(fen)
+    board_position, additional_board_info = setup_by_FEN(fen)
     if DEPTH > len(game):
         depth = len(game)
     else:
@@ -40,8 +40,8 @@ def extract_data_from_game(game):
     for move in game[:depth]:#does not add the full game to the database
         db.append([fen, move])
         #next move
-        board_position, additional_board_info = main.execute_move(move, board_position, additional_board_info)
-        fen = main.FEN_by_setup(board_position, additional_board_info)
+        board_position, additional_board_info = execute_move(move, board_position, additional_board_info)
+        fen = FEN_by_setup(board_position, additional_board_info)
     return db
 
 
@@ -91,7 +91,7 @@ def write_data_to_csv(database, path):
 
 
 #max depth of created database
-DEPTH = 3
+DEPTH = 10
 db = load_games('csv_database.csv')
 print('database loaded')
 data = extract_data_from_database(db)
