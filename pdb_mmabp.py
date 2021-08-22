@@ -2,7 +2,7 @@ import csv
 import ast
 import numpy as np
 
-
+import minimax_abp
 import main
 
 
@@ -42,7 +42,7 @@ def load_database(path):
     database = list(csv.reader(open(path)))
 
 
-def find_best_move(board_position, additional_board_info):
+def find_best_move(board_position, additional_board_info, minimax_depth):
     fen = main.FEN_by_setup(board_position, additional_board_info)
     index = fen_in_database(database, fen)
     legal_moves = main.legal_moves(board_position, additional_board_info)
@@ -57,4 +57,4 @@ def find_best_move(board_position, additional_board_info):
             print('chosen with database size', int(s))
             return move[0]
     print('moved randomly')
-    return np.random.choice(legal_moves, 1)[0]
+    return minimax_abp.find_best_move(board_position, additional_board_info, minimax_depth)[0]

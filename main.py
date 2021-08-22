@@ -8,6 +8,7 @@ import minimax_abp
 import db_random
 import db_mmabp
 import pdb_random
+import pdb_mmabp
 
 import pgn_interpreter
 
@@ -661,7 +662,8 @@ def main(board_state=None, additional_board_info=None):
         db_mmabp_handler = db_mmabp.DatabaseHandler('./csv_database.csv')
     if WHITE == 6 or BLACK == 6:
         pdb_random.load_database('./position_database.csv')
-
+    if WHITE == 7 or BLACK == 7:
+        pdb_mmabp.load_database('./position_database.csv')
 
     moves_played = []
 
@@ -690,6 +692,8 @@ def main(board_state=None, additional_board_info=None):
                 move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, WHITE_DEPTH, True)
             elif WHITE == 6:
                 move = pdb_random.find_best_move(board_state, additional_board_info)
+            elif WHITE == 7:
+                move = pdb_mmabp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
 
 
         elif additional_board_info[0] == 'black':
@@ -711,6 +715,8 @@ def main(board_state=None, additional_board_info=None):
                 move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH, True)
             elif BLACK == 6:
                 move = pdb_random.find_best_move(board_state, additional_board_info)
+            elif BLACK == 7:
+                move = pdb_mmabp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
         moves_played.append(move)
@@ -746,9 +752,8 @@ GAMEMODE = 0
 
 BOARD_FLIPPED = False
 
-WHITE = 6
-BLACK = 0
-
+WHITE = 7
+BLACK = 6
 # 0 = human player
 # 1 = random moves - randommove.py
 # 2 = bruteforce minimax algorithm - minimax.py
@@ -756,11 +761,20 @@ BLACK = 0
 # 4 = database first, then random moves - db_random.py
 # 5 = database first, then minimax with alpha beta pruning - db_mmabp.py
 # 6 = positional database first, then random moves - pdb_random.py
-
+# 7 = positional database first, then minimax with alpha beta pruning - pdb_mmabp.py
+MOVEFINDING_FUNCTIONS = [
+    get_move_from_gui,
+    randommove.choose_move,
+    minimax.find_best_move,
+    minimax_abp.find_best_move,
+]
 
 WHITE_DEPTH = 2
 BLACK_DEPTH = 2
 # depth matters only if the player is engine
+
+WHITE_VERBOSE = True
+BLACK_VERBOSE = True
 
 if __name__ == "__main__":
     WITH_GUI = True
