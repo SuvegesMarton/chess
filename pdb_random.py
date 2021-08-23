@@ -5,6 +5,8 @@ import numpy as np
 
 import main
 
+database = None
+database_path = './position_database.csv'
 
 def is_same_FEN(fen1, fen2, board_state_match=True, sides_to_move_match=True, castling_abilities_match=False, en_passant_targets_match=False, halfmove_clock_match=False, move_number_match=False):
     fen1chunks = fen1.split(' ')
@@ -37,9 +39,9 @@ def fen_in_database(database, fen):
     return False
 
 
-def load_database(path):
+def load_database():
     global database
-    database = list(csv.reader(open(path)))
+    database = list(csv.reader(open(database_path)))
 
 
 def find_best_move(board_position, additional_board_info):

@@ -20,6 +20,10 @@ BISHOP_DIRECTIONS = [[1, 1], [-1, -1], [1, -1], [-1, 1]]
 ROOK_DIRECTIONS = [[0, 1], [0, -1], [-1, 0], [1, 0]]
 
 
+def do_nothing():
+    pass
+
+
 def copy_2d_list(list_to_copy):
     new_list = []
     for i in list_to_copy:
@@ -648,75 +652,28 @@ def is_checkmate(board_state, additional_board_info, surely_in_check=False):
 
 
 def main(board_state=None, additional_board_info=None):
+    global moves_played
     # set basics if there is no specific position given
     if board_state == None:
         board_state = setup_board()
     if additional_board_info == None:
         additional_board_info = setup_additional_board_info()
 
-    # if any of the player uses a database, load it
-    db_random_handler, db_mmabp_handler = None, None
-    if WHITE == 4 or BLACK == 4:
-        db_random_handler = db_random.DatabaseHandler('./csv_database.csv')
-    if WHITE == 5 or BLACK == 5:
-        db_mmabp_handler = db_mmabp.DatabaseHandler('./csv_database.csv')
-    if WHITE == 6 or BLACK == 6:
-        pdb_random.load_database('./position_database.csv')
-    if WHITE == 7 or BLACK == 7:
-        pdb_mmabp.load_database('./position_database.csv')
-
-    moves_played = []
-
+    # if any of the players needs initialization, do it
+    INITIALIZATION_FUNCTIONS[WHITE]()
+    INITIALIZATION_FUNCTIONS[BLACK]()
 
     display_with_gui(board_state)
-
 
     move = None
     while True:
         if additional_board_info[0] == 'white':
-            if WHITE == 0:
-                move = get_move_from_gui(board_state, additional_board_info)
-            elif WHITE == 1:
-                move = randommove.choose_move(board_state, additional_board_info)
-            elif WHITE == 2:
-                move, investigated_positions, dynamic_eval = minimax.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
-                print("number of investigated positions:", investigated_positions)
-                print('dynamic eval:', dynamic_eval)
-            elif WHITE == 3:
-                move, investigated_positions, dynamic_eval = minimax_abp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
-                print("number of investigated positions:", investigated_positions)
-                print('dynamic eval:', dynamic_eval)
-            elif WHITE == 4:
-                move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info, True)
-            elif WHITE == 5:
-                move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, WHITE_DEPTH, True)
-            elif WHITE == 6:
-                move = pdb_random.find_best_move(board_state, additional_board_info)
-            elif WHITE == 7:
-                move = pdb_mmabp.find_best_move(board_state, additional_board_info, WHITE_DEPTH)
-
+            move_finder_function = MOVEFINDER_FUNCTIONS[WHITE]
+            move = move_finder_function(board_state, additional_board_info)
 
         elif additional_board_info[0] == 'black':
-            if BLACK == 0:
-                move = get_move_from_gui(board_state, additional_board_info)
-            elif BLACK == 1:
-                move = randommove.choose_move(board_state, additional_board_info)
-            elif BLACK == 2:
-                move, investigated_positions, dynamic_eval = minimax.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
-                print("number of investigated positions:", investigated_positions)
-                print('dynamic eval:', dynamic_eval)
-            elif BLACK == 3:
-                move, investigated_positions, dynamic_eval = minimax_abp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
-                print("number of investigated positions:", investigated_positions)
-                print('dynamic eval:', dynamic_eval)
-            elif BLACK == 4:
-                move = db_random_handler.find_move_with_database(moves_played, board_state, additional_board_info, True)
-            elif BLACK == 5:
-                move = db_mmabp_handler.find_move_with_database(moves_played, board_state, additional_board_info, BLACK_DEPTH, True)
-            elif BLACK == 6:
-                move = pdb_random.find_best_move(board_state, additional_board_info)
-            elif BLACK == 7:
-                move = pdb_mmabp.find_best_move(board_state, additional_board_info, BLACK_DEPTH)
+            move_finder_function = MOVEFINDER_FUNCTIONS[BLACK]
+            move = move_finder_function(board_state, additional_board_info)
 
         board_state, additional_board_info = execute_move(move, board_state, additional_board_info)
         moves_played.append(move)
@@ -724,12 +681,13 @@ def main(board_state=None, additional_board_info=None):
         check = is_check(board_state, additional_board_info)
         checkmate = is_checkmate(board_state, additional_board_info)
         fen = FEN_by_setup(board_state, additional_board_info)
-        print('move:', move)
-        print('position FEN:', fen)
-        print('check:', check)
-        print('checkmate:', checkmate)
-        print('static eval:', round(minimax.static_evaluation(board_state), 3))
-        print("\n")
+        if MAIN_VERBOSE:
+            print('move:', move)
+            print('position FEN:', fen)
+            print('check:', check)
+            print('checkmate:', checkmate)
+            print('static eval:', round(minimax.static_evaluation(board_state), 3))
+            print("\n")
         if checkmate:
             break
 
@@ -745,6 +703,7 @@ def display_game(moves, board_state=None, additional_board_info=None):
         display_with_gui(board_state)
         clock.tick(1)
 
+moves_played = []
 
 GAMEMODE = 0
 
@@ -752,8 +711,8 @@ GAMEMODE = 0
 
 BOARD_FLIPPED = False
 
-WHITE = 7
-BLACK = 6
+WHITE = 4
+BLACK = 4
 # 0 = human player
 # 1 = random moves - randommove.py
 # 2 = bruteforce minimax algorithm - minimax.py
@@ -762,19 +721,15 @@ BLACK = 6
 # 5 = database first, then minimax with alpha beta pruning - db_mmabp.py
 # 6 = positional database first, then random moves - pdb_random.py
 # 7 = positional database first, then minimax with alpha beta pruning - pdb_mmabp.py
-MOVEFINDING_FUNCTIONS = [
-    get_move_from_gui,
-    randommove.choose_move,
-    minimax.find_best_move,
-    minimax_abp.find_best_move,
-]
+
 
 WHITE_DEPTH = 2
 BLACK_DEPTH = 2
 # depth matters only if the player is engine
 
-WHITE_VERBOSE = True
-BLACK_VERBOSE = True
+WHITE_VERBOSE = False
+BLACK_VERBOSE = False
+MAIN_VERBOSE = False
 
 if __name__ == "__main__":
     WITH_GUI = True
@@ -785,6 +740,28 @@ if __name__ == "__main__":
         pygame.display.set_caption('Chess')
         clock = pygame.time.Clock()
     if GAMEMODE == 0:
+        #movefinder function parameters: (board_state, additional_board_info, )
+        MOVEFINDER_FUNCTIONS = [
+            get_move_from_gui,
+            randommove.choose_move,
+            minimax.find_best_move,
+            minimax_abp.find_best_move,
+            db_random.find_move_with_database,
+            db_mmabp.find_move_with_database,
+            pdb_random.find_best_move,
+            pdb_mmabp.find_best_move,
+        ]
+
+        INITIALIZATION_FUNCTIONS = [
+            do_nothing,
+            do_nothing,
+            do_nothing,
+            do_nothing,
+            db_random.load_database,
+            db_mmabp.load_database,
+            pdb_random.load_database,
+            pdb_mmabp.load_database,
+        ]
         board_state, additional_board_info = setup_by_FEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
         main(board_state=board_state, additional_board_info=additional_board_info)
     elif GAMEMODE == 1:
